@@ -1,6 +1,7 @@
 // src/lib/supabase.ts
 import { createBrowserClient } from '@supabase/ssr';
 import { createServerClient as createServerClientSSR } from '@supabase/ssr';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 interface ServerCookies {
   getAll(): { name: string; value: string }[] | Promise<{ name: string; value: string }[]> | null;
@@ -24,6 +25,16 @@ export function createServerClient(cookies: ServerCookies) {
             cookies.set(name, value, options)
           ),
       },
+    }
+  );
+}
+
+export function createAdminClient(): SupabaseClient {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
     }
   );
 }

@@ -1,9 +1,10 @@
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient, createAdminClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { canManageStaff } from '@/lib/permissions';
 import { validateEmail, validateRole } from '@/lib/staff-validation';
-import type { StaffListResponse, StaffInvitationResponse } from '@/types/api';
+import type { StaffListResponse, StaffInvitationResponse, StaffMemberResponse } from '@/types/api';
+import type { UserRole } from '@/types/business';
 import { randomBytes } from 'crypto';
 
 function generateInvitationToken(): string {
@@ -40,7 +41,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data: members, error } = await supabase
+    const admin = createAdminClient();
+
+    const { data: members, error } = await admin
       .from('business_members')
       .select('user_id, role, created_at')
       .eq('business_id', businessId);
@@ -50,29 +53,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    const userIds = members.map((m) => m.user_id);
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const staff: StaffMemberResponse[] = [];
+    for (const member of members) {
+      const { data: authData } = await admin.auth.admin.getUserById(member.user_id);
+      const authUser = authData?.user;
+      const email = authUser?.email ?? 'Unknown';
+      staff.push({
+        id: member.user_id,
+        email,
+        name: authUser?.user_metadata?.name ?? authUser?.user_metadata?.full_name ?? email,
+        role: member.role as UserRole,
+        created_at: member.created_at,
+      });
     }
 
-    const userMap = new Map(authData.users.map((u) => [u.id, u]));
-
-    const staff = members
-      .map((member) => {
-        const authUser = userMap.get(member.user_id);
-        return {
-          id: member.user_id,
-          user_id: member.user_id,
-          email: authUser?.email || 'Unknown',
-          name: authUser?.user_metadata?.name || authUser?.email?.split('@')[0] || 'Unknown',
-          role: member.role,
-          created_at: member.created_at,
-        };
-      })
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    staff.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     const response: StaffListResponse = {
       success: true,
@@ -143,7 +138,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invitation already sent to this email' }, { status: 400 });
     }
 
-    const { data: { users }, error: searchError } = await supabase.auth.admin.listUsers();
+    const admin = createAdminClient();
+    const { data: { users }, error: searchError } = await admin.auth.admin.listUsers();
     if (searchError) {
       console.error('Error searching for user:', searchError);
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -186,12 +182,6 @@ export async function POST(request: NextRequest) {
       console.error('Error creating invitation:', error);
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-
-    // TODO: Send invitation email with token to ${email}
-    // This requires setting up Resend or similar email service
-    // For now, return the token to API caller (they can test with it)
-    // In production, would do:
-    // await sendInvitationEmail(email, token, businessId);
 
     const response: StaffInvitationResponse = {
       success: true,

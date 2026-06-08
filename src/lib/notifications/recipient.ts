@@ -1,5 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { createServerClient } from '@/lib/supabase';
+import { createAdminClient, type createServerClient } from '@/lib/supabase';
 
 interface BusinessOwnerRow {
   owner_id: string;
@@ -32,9 +31,7 @@ export async function resolveBusinessOwnerEmail(
     return null;
   }
 
-  const admin: SupabaseClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const admin = createAdminClient();
 
   const { data, error } = await admin.auth.admin.getUserById(business.owner_id);
 

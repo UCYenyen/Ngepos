@@ -130,7 +130,13 @@ export async function POST(request: NextRequest) {
       !Array.isArray(items) ||
       items.length === 0 ||
       total === undefined ||
-      total === null
+      total === null ||
+      subtotal === undefined ||
+      subtotal === null ||
+      tax_amount === undefined ||
+      tax_amount === null ||
+      discount_amount === undefined ||
+      discount_amount === null
     ) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }

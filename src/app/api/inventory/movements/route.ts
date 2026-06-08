@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient, createAdminClient } from '@/lib/supabase';
 import { canViewAnalytics } from '@/lib/permissions';
 import { StockMovement } from '@/types/operations';
 import { cookies } from 'next/headers';
@@ -12,11 +12,6 @@ interface VariantData {
   name: string;
 }
 
-interface UserData {
-  email: string;
-  full_name: string | null;
-}
-
 interface StockMovementData {
   id: string;
   product_id: string;
@@ -28,7 +23,6 @@ interface StockMovementData {
   created_at: string;
   products: ProductData | null;
   product_variants: VariantData | null;
-  created_by_user: UserData | null;
 }
 
 interface StockMovementResponse {
@@ -118,8 +112,7 @@ export async function GET(request: NextRequest) {
         created_by,
         created_at,
         products(name),
-        product_variants(name),
-        created_by_user:auth.users(email, full_name)
+        product_variants(name)
       `,
         { count: 'exact' }
       )
@@ -142,26 +135,31 @@ export async function GET(request: NextRequest) {
     if (movementsError) throw movementsError;
 
     const typedMovements = movements as unknown as StockMovementData[] | null;
+    const movementRows = typedMovements || [];
 
-    // Transform response
-    const transformedMovements: StockMovementResponse[] = (typedMovements || []).map(
-      (movement) => ({
-        id: movement.id,
-        product_id: movement.product_id,
-        product_name: movement.products?.name || 'Unknown Product',
-        variant_id: movement.variant_id,
-        variant_name: movement.product_variants?.name || null,
-        type: movement.type,
-        quantity_change: movement.quantity_change,
-        note: movement.note,
-        created_by: movement.created_by,
-        created_by_name:
-          movement.created_by_user?.full_name ||
-          movement.created_by_user?.email ||
-          'Unknown User',
-        created_at: movement.created_at,
-      })
-    );
+    const admin = createAdminClient();
+    const creatorIds = [...new Set(movementRows.map((movement) => movement.created_by))];
+    const creatorNames = new Map<string, string>();
+
+    for (const creatorId of creatorIds) {
+      const { data: authData } = await admin.auth.admin.getUserById(creatorId);
+      const authUser = authData?.user;
+      creatorNames.set(creatorId, authUser?.user_metadata?.name ?? authUser?.email ?? 'Unknown User');
+    }
+
+    const transformedMovements: StockMovementResponse[] = movementRows.map((movement) => ({
+      id: movement.id,
+      product_id: movement.product_id,
+      product_name: movement.products?.name || 'Unknown Product',
+      variant_id: movement.variant_id,
+      variant_name: movement.product_variants?.name || null,
+      type: movement.type,
+      quantity_change: movement.quantity_change,
+      note: movement.note,
+      created_by: movement.created_by,
+      created_by_name: creatorNames.get(movement.created_by) ?? 'Unknown User',
+      created_at: movement.created_at,
+    }));
 
     const response: MovementsResponse = {
       movements: transformedMovements,
