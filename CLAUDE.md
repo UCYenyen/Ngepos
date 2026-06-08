@@ -207,10 +207,10 @@ src/hooks/
 
 ### Validation Organization
 
-All validation logic is centralized in `src/validation/` using **Zod** for schema validation:
+All validation logic is centralized in `src/validations/` using **Zod** for schema validation:
 
 ```plaintext
-src/validation/
+src/validations/
 ├── common.ts            # Shared Zod schemas (email, password, currency, etc.)
 ├── auth.ts              # Auth schemas: loginSchema, signupSchema, resetPasswordSchema
 ├── business.ts          # Business schemas: createBusinessSchema, businessSettingsSchema
@@ -231,7 +231,7 @@ Each validation domain exports:
 **Example Usage:**
 
 ```typescript
-import { loginSchema, validateLogin, type LoginInput } from '@/validation/auth';
+import { loginSchema, validateLogin, type LoginInput } from '@/validations/auth';
 
 const handleSubmit = async (formData: LoginInput) => {
   const result = await validateLogin(formData);
@@ -285,7 +285,7 @@ src/tests/
 │   │   └── useAuth.test.ts
 │   └── pos/
 │       └── useCart.test.ts
-└── validation/
+└── validations/
     ├── auth.test.ts
     └── pos.test.ts
 ```
@@ -443,7 +443,7 @@ export function Button({
 
 ```typescript
 import { useCallback, useState } from "react";
-import type { ValidationResult } from "@/validation/common";
+import type { ValidationResult } from "@/validations/common";
 
 interface UseFormState {
   values: Record<string, string>;
@@ -476,8 +476,8 @@ export function useForm(initialValues: Record<string, string>) {
 ### Validation Usage
 
 ```typescript
-import { validateLoginForm } from "@/validation/auth";
-import type { LoginFormData } from "@/validation/auth";
+import { validateLoginForm } from "@/validations/auth";
+import type { LoginFormData } from "@/validations/auth";
 
 function LoginForm() {
   const handleSubmit = (data: LoginFormData) => {
@@ -499,5 +499,5 @@ function LoginForm() {
 2. **RLS is mandatory** on every new table. No table should be readable without a policy.
 3. **Business type matters:** `retail` and `fnb` businesses have different features. F&B gets table management; both get core POS. Always check `business.type` before rendering F&B-specific UI.
 4. **Design system first:** Always reference the design tokens from globals.css — use semantic color classes (`text-ink`, `bg-surface-1`) instead of hardcoded values.
-5. **Validation everywhere:** Validate on client (UX) and server (security). Use validation functions from `src/validation/` for consistency.
+5. **Validation everywhere:** Validate on client (UX) and server (security). Use validation functions from `src/validations/` for consistency.
 6. **Git:** Author: Ngepos / bfernando@student.ciputra.ac.id / Remote: [https://github.com/UCYenyen/Ngepos.git](https://github.com/UCYenyen/Ngepos.git)
