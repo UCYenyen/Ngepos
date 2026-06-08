@@ -1,4 +1,12 @@
 -- supabase/migrations/003_operations_schema.sql
+-- Operations schema: inventory management (Pro/Enterprise)
+--
+-- Key design decisions:
+-- 1. Staff management uses the business_members table from Foundation (user → role → business)
+-- 2. stock_movements.created_by must reference a user in the same business (enforced by RLS)
+-- 3. variant_id is nullable but app-level validation required:
+--    - If product.has_variants = true, variant_id must NOT be null
+--    - If product.has_variants = false, variant_id must be null
 
 CREATE TABLE stock_movements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,11 +33,18 @@ CREATE POLICY stock_movements_select ON stock_movements
 
 CREATE POLICY stock_movements_insert ON stock_movements
   FOR INSERT WITH CHECK (
+    -- Executing user must be owner/manager in the business
     EXISTS (
       SELECT 1 FROM business_members
       WHERE business_members.business_id = stock_movements.business_id
         AND business_members.user_id = auth.uid()
         AND business_members.role IN ('owner', 'manager')
+    )
+    -- created_by user must also be a member of the same business
+    AND EXISTS (
+      SELECT 1 FROM business_members
+      WHERE business_members.business_id = stock_movements.business_id
+        AND business_members.user_id = stock_movements.created_by
     )
   );
 
@@ -42,11 +57,18 @@ CREATE POLICY stock_movements_update ON stock_movements
         AND business_members.role IN ('owner', 'manager')
     )
   ) WITH CHECK (
+    -- Executing user must still be owner/manager
     EXISTS (
       SELECT 1 FROM business_members
       WHERE business_members.business_id = stock_movements.business_id
         AND business_members.user_id = auth.uid()
         AND business_members.role IN ('owner', 'manager')
+    )
+    -- created_by user must be a member of the same business
+    AND EXISTS (
+      SELECT 1 FROM business_members
+      WHERE business_members.business_id = stock_movements.business_id
+        AND business_members.user_id = stock_movements.created_by
     )
   );
 
@@ -119,6 +141,10 @@ CREATE POLICY suppliers_delete ON suppliers
     )
   );
 
+-- Indexes for stock_movements audit and query performance
 CREATE INDEX idx_stock_movements_business_id_created_at ON stock_movements(business_id, created_at);
 CREATE INDEX idx_stock_movements_product_id ON stock_movements(product_id);
+CREATE INDEX idx_stock_movements_created_by ON stock_movements(created_by);
+
+-- Indexes for suppliers
 CREATE INDEX idx_suppliers_business_id ON suppliers(business_id);
