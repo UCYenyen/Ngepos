@@ -2,7 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, ShoppingCart, Users, type LucideIcon } from 'lucide-react';
+import {
+  BarChart3,
+  Boxes,
+  FileText,
+  Settings,
+  ShoppingCart,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SidebarProps } from './types';
 
@@ -10,6 +18,9 @@ const ICONS: Record<string, LucideIcon> = {
   pos: ShoppingCart,
   inventory: Boxes,
   staff: Users,
+  analytics: BarChart3,
+  reports: FileText,
+  settings: Settings,
 };
 
 export function Sidebar({ businessName, items }: SidebarProps) {

@@ -4,6 +4,9 @@ import {
   canManageInventory,
   canManageStaff,
   canProcessTransactions,
+  canViewAnalytics,
+  canViewReports,
+  canAccessBusinessSettings,
 } from '@/lib/permissions';
 
 export type PlanFeatures = PlanConfig['features'];
@@ -42,6 +45,30 @@ export function getNavItems({
 
   if (canManageStaff(role)) {
     items.push({ label: 'Staff', href: `/${businessId}/staff`, key: 'staff' });
+  }
+
+  if (features.analytics && canViewAnalytics(role)) {
+    items.push({
+      label: 'Analytics',
+      href: `/${businessId}/analytics`,
+      key: 'analytics',
+    });
+  }
+
+  if (canViewReports(role)) {
+    items.push({
+      label: 'Reports',
+      href: `/${businessId}/reports`,
+      key: 'reports',
+    });
+  }
+
+  if (canAccessBusinessSettings(role)) {
+    items.push({
+      label: 'Settings',
+      href: `/${businessId}/settings`,
+      key: 'settings',
+    });
   }
 
   return items;
