@@ -12,6 +12,8 @@ import { AlertCircle } from 'lucide-react';
 
 type AdjustmentType = 'restock' | 'damage' | 'adjustment';
 
+const SUCCESS_MESSAGE_DELAY_MS = 1000;
+
 interface StockAdjustmentProps {
   businessId: string;
   productId: string;
@@ -69,7 +71,7 @@ export function StockAdjustment({
         productId,
         variantId: hasVariants ? selectedVariant : undefined,
         type: adjustmentType,
-        quantity_change: adjustmentType === 'restock' ? quantityNum : quantityNum,
+        quantity_change: quantityNum,
         note: note.trim() || null,
       };
 
@@ -96,7 +98,7 @@ export function StockAdjustment({
         if (onAdjustmentComplete) {
           onAdjustmentComplete();
         }
-      }, 1000);
+      }, SUCCESS_MESSAGE_DELAY_MS);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to adjust inventory');
     } finally {
@@ -217,7 +219,7 @@ export function StockAdjustment({
             />
             {willResultInNegative && (
               <p className="text-sm text-red-600 mt-2">
-                Warning: This adjustment would result in negative stock ({selectedVariantStock} {quantityNum} = {selectedVariantStock + quantityNum})
+                Warning: This adjustment would result in negative stock ({selectedVariantStock} + ({quantityNum}) = {selectedVariantStock + quantityNum})
               </p>
             )}
           </div>

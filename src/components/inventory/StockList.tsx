@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -37,28 +37,7 @@ export function StockList({ businessId }: StockListProps) {
   const [selectedProductForHistory, setSelectedProductForHistory] = useState<InventoryProduct | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchInventory = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`/api/inventory?businessId=${businessId}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch inventory: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setProducts(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch inventory');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInventory();
-  }, [businessId]);
-
-  const handleRetry = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -73,6 +52,14 @@ export function StockList({ businessId }: StockListProps) {
     } finally {
       setLoading(false);
     }
+  }, [businessId]);
+
+  useEffect(() => {
+    fetchInventory();
+  }, [businessId, fetchInventory]);
+
+  const handleRetry = () => {
+    fetchInventory();
   };
 
   const getStockStatus = (current: number, threshold: number | null) => {
