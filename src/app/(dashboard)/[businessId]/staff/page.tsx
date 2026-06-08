@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { requireBusinessAccess } from '@/lib/auth';
 import { canManageStaff } from '@/lib/permissions';
+import { PageShell } from '@/components/common/PageShell/PageShell';
+import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
 import { StaffList } from '@/components/features/staff/StaffList/StaffList';
 import type { Business } from '@/types/business';
 
@@ -26,25 +28,15 @@ export default async function StaffPage({ params }: StaffPageProps) {
   const typedBusiness = business as Business;
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <div className="container-wrapper py-8">
-        <header className="mb-8">
-          <h1 className="text-3xl font-semibold text-ink">Staff</h1>
-          <p className="mt-1 text-ink-muted">{typedBusiness.name}</p>
-        </header>
-
-        {!canManageStaff(member.role) ? (
-          <div className="card max-w-2xl">
-            <h2 className="text-xl font-semibold text-ink">Access denied</h2>
-            <p className="mt-2 text-ink-muted">
-              Only the business owner can manage staff. Contact your business
-              owner to request changes to staff roles or invitations.
-            </p>
-          </div>
-        ) : (
-          <StaffList businessId={businessId} />
-        )}
-      </div>
-    </div>
+    <PageShell title="Staff" subtitle={typedBusiness.name}>
+      {!canManageStaff(member.role) ? (
+        <NoticeCard
+          title="Access denied"
+          description="Only the business owner can manage staff. Contact your business owner to request changes to staff roles or invitations."
+        />
+      ) : (
+        <StaffList businessId={businessId} />
+      )}
+    </PageShell>
   );
 }

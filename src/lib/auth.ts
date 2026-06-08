@@ -2,6 +2,7 @@
 import { createServerClient } from './supabase';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import type { Subscription } from '@/types/auth';
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
@@ -14,7 +15,7 @@ export async function getCurrentUser() {
   return user;
 }
 
-export async function getCurrentSubscription() {
+export async function getCurrentSubscription(): Promise<Subscription | null> {
   const user = await getCurrentUser();
   if (!user) return null;
 
@@ -27,7 +28,7 @@ export async function getCurrentSubscription() {
     .eq('user_id', user.id)
     .single();
 
-  return subscription || null;
+  return (subscription as Subscription) || null;
 }
 
 export async function getUserBusinesses() {
