@@ -63,7 +63,7 @@ export {
 export { Drawer, DrawerTrigger, DrawerContent, DrawerHeader, DrawerFooter, DrawerTitle, DrawerDescription, DrawerClose } from "./drawer";
 export { HoverCard, HoverCardTrigger, HoverCardContent } from "./hover-card";
 export { Input } from "./input";
-export { InputGroup, InputGroupIcon } from "./input-group";
+export { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupInput, InputGroupTextarea } from "./input-group";
 export { Label } from "./label";
 export { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./pagination";
 export { Popover, PopoverTrigger, PopoverContent } from "./popover";
@@ -75,12 +75,12 @@ export { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetFooter, SheetTitle
 export { Sidebar, SidebarHeader, SidebarFooter, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarGroupAction, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge, SidebarMenuSkeleton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, SidebarRail, useSidebar } from "./sidebar";
 export { Skeleton } from "./skeleton";
 export { Slider } from "./slider";
-export { Sonner, Toaster, toast } from "./sonner";
+export { Toaster } from "./sonner";
 export { Spinner } from "./spinner";
 export { Switch } from "./switch";
 export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption } from "./table";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs";
 export { Textarea } from "./textarea";
-export { Toggle, ToggleGroup } from "./toggle";
-export { ToggleGroup as ToggleGroupAlt, ToggleGroupItem } from "./toggle-group";
+export { Toggle } from "./toggle";
+export { ToggleGroup, ToggleGroupItem } from "./toggle-group";
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./tooltip";
