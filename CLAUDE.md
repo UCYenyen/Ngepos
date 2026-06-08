@@ -50,7 +50,7 @@ Plan limits (max businesses, max products, max staff, feature flags) are defined
 
 ### Route Structure (App Router)
 
-```
+```plaintext
 src/app/
 ├── (auth)/              # Login, signup, onboarding — no sidebar
 ├── (dashboard)/
@@ -115,28 +115,83 @@ src/types/
 
 ### Component Organization
 
-Components are organized by feature in `src/components/<feature_name>/`:
+Components are organized by feature with each component in its own folder in `src/components/<feature_name>/<component_name>/`:
 
-```
+```plaintext
 src/components/
-├── auth/                # Auth-related components
-├── pos/                 # POS transaction components
-├── products/            # Product management components
-├── inventory/           # Inventory management components
-├── tables/              # Table management components
-├── staff/               # Staff management components
-├── analytics/           # Analytics/dashboard components
-├── reports/             # Report components
-├── settings/            # Settings components
-├── common/              # Shared UI components (buttons, inputs, modals, etc.)
-└── layout/              # Layout wrappers (sidebar, header, etc.)
+├── auth/
+│   ├── LoginForm/
+│   │   ├── LoginForm.tsx
+│   │   ├── LoginForm.test.tsx
+│   │   └── types.ts
+│   └── SignupForm/
+│       ├── SignupForm.tsx
+│       ├── SignupForm.test.tsx
+│       └── types.ts
+├── pos/
+│   ├── TransactionCart/
+│   │   ├── TransactionCart.tsx
+│   │   ├── TransactionCart.test.tsx
+│   │   └── types.ts
+│   └── PaymentMethod/
+│       ├── PaymentMethod.tsx
+│       ├── PaymentMethod.test.tsx
+│       └── types.ts
+├── products/
+│   ├── ProductCard/
+│   │   ├── ProductCard.tsx
+│   │   ├── ProductCard.test.tsx
+│   │   └── types.ts
+│   └── CategoryFilter/
+│       ├── CategoryFilter.tsx
+│       ├── CategoryFilter.test.tsx
+│       └── types.ts
+├── inventory/
+├── tables/
+├── staff/
+├── analytics/
+├── reports/
+├── settings/
+├── common/
+│   ├── Button/
+│   │   ├── Button.tsx
+│   │   ├── Button.test.tsx
+│   │   └── types.ts
+│   ├── Input/
+│   │   ├── Input.tsx
+│   │   ├── Input.test.tsx
+│   │   └── types.ts
+│   ├── Modal/
+│   │   ├── Modal.tsx
+│   │   ├── Modal.test.tsx
+│   │   └── types.ts
+│   └── Card/
+│       ├── Card.tsx
+│       ├── Card.test.tsx
+│       └── types.ts
+└── layout/
+    ├── Sidebar/
+    │   ├── Sidebar.tsx
+    │   ├── Sidebar.test.tsx
+    │   └── types.ts
+    └── Header/
+        ├── Header.tsx
+        ├── Header.test.tsx
+        └── types.ts
 ```
+
+**Component Folder Structure Rules:**
+
+- Each component gets its own folder: `<FeatureName>/<ComponentName>/`
+- Include: `ComponentName.tsx`, `ComponentName.test.tsx`, `types.ts` (component-specific types)
+- Component file should be the primary export
+- Keep types colocated with the component for context
 
 ### Hooks Organization
 
 Custom hooks are organized by feature in `src/hooks/<feature_name>/`:
 
-```
+```plaintext
 src/hooks/
 ├── auth/
 │   ├── useAuth.ts
@@ -158,6 +213,55 @@ src/hooks/
 - Each hook file should contain only one primary hook (small utility hooks can coexist).
 - Hooks must have proper return types, never `any`.
 - Hooks can import from `src/types/` for type safety.
+
+### Validation Organization
+
+All validation logic is centralized in `src/validation/` using **Zod** for schema validation:
+
+```plaintext
+src/validation/
+├── common.ts            # Shared Zod schemas (email, password, currency, etc.)
+├── auth.ts              # Auth schemas: loginSchema, signupSchema, resetPasswordSchema
+├── business.ts          # Business schemas: createBusinessSchema, businessSettingsSchema
+├── product.ts           # Product schemas: productSchema, categorySchema, bulkProductSchema
+├── pos.ts               # POS schemas: transactionSchema, refundSchema, paymentMethodSchema
+├── staff.ts             # Staff schemas: staffMemberSchema, staffPermissionsSchema, staffRoleSchema
+└── index.ts             # Clean exports
+```
+
+**Validation with Zod:**
+
+Each validation domain exports:
+
+- **Schemas:** Zod `z.object()` definitions (e.g., `loginSchema`, `productSchema`)
+- **Types:** Automatically inferred types using `z.infer<typeof schema>` (e.g., `LoginInput`)
+- **Validate functions:** Async functions that return `{ success: boolean; data?: T; errors?: FieldErrors }`
+
+**Example Usage:**
+
+```typescript
+import { loginSchema, validateLogin, type LoginInput } from '@/validation/auth';
+
+const handleSubmit = async (formData: LoginInput) => {
+  const result = await validateLogin(formData);
+  
+  if (!result.success) {
+    setErrors(result.errors);
+    return;
+  }
+  
+  await submitLogin(result.data);
+};
+```
+
+**Validation Rules:**
+
+- Use Zod schemas for all form data validation
+- Type-safe validation through `z.infer<typeof schema>`
+- Compose schemas using common patterns (`.email()`, `.min()`, `.max()`, `.refine()`)
+- Validate on both client (UX) and server (security) sides
+- Custom validation logic via `.refine()` or `.superRefine()` for cross-field validation
+- Async validation functions handle Zod errors and return structured results
 
 ### Code Quality Standards
 
@@ -197,6 +301,49 @@ export default function POSPage() {
 - Provide `openGraph` for social sharing.
 - Use dynamic metadata where needed (e.g., business name in title).
 
+## Design System
+
+### Brand Foundation
+
+The design system is based on an Intercom-inspired minimalist aesthetic:
+
+**Colors:**
+
+- **Canvas:** Soft cream-white `#f5f1ec` — default page background
+- **Surface:** Pure white `#ffffff` — floating cards, input fields
+- **Primary Ink:** Charcoal `#111111` — headlines, body text, primary buttons
+- **Muted Ink:** Medium gray `#626260` — secondary text, disabled states
+- **Accent:** Brand orange `#ff5600` — CTAs, highlights
+- **Error:** Red `#c41c1c` — validation errors, destructive states
+- **Success:** Green `#0bdf50` — success states, confirmations
+
+**Typography:**
+
+- **Font Family:** `system-ui, -apple-system, sans-serif` (fallback to system fonts)
+- **Display:** Weight 500 at 40–72px with negative letter-spacing
+- **Body:** Weight 400 at 14–18px with 1.5 line-height
+- **Mono:** For code snippets and data displays
+
+**Spacing:**
+
+- Base unit: 8px — all spacing uses multiples of 8px (4px, 8px, 12px, 16px, 24px, 32px, 48px)
+
+**Border Radius:**
+
+- Buttons & inputs: 8px
+- Cards: 12px
+- Product mockups: 16px
+- Pill buttons: 9999px (full width)
+
+**Elevation:**
+
+- No drop shadows — depth via white-on-cream surface changes
+- Cards lift from cream canvas onto white surface
+
+### Design Tokens
+
+All design tokens are defined in `src/styles/globals.css` as CSS custom properties and integrate with Tailwind configuration.
+
 ## Environment Variables
 
 ```shell
@@ -211,9 +358,111 @@ FONNTE_API_KEY=                 # Server-only
 
 Create `.env.local` from `.env.example`. Restart dev server after changes. Variables without `NEXT_PUBLIC_` prefix are server-only.
 
+## Creating Components & Hooks
+
+### Component Template
+
+Every component follows this structure:
+
+```typescript
+"use client";
+
+import { cn } from "@/lib/utils";
+import type { ComponentProps } from "@/types/common";
+
+interface ButtonProps extends ComponentProps {
+  variant?: "primary" | "secondary" | "accent";
+  size?: "sm" | "md" | "lg";
+  isLoading?: boolean;
+  disabled?: boolean;
+}
+
+export function Button({
+  className,
+  variant = "primary",
+  size = "md",
+  isLoading,
+  disabled,
+  children,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        "btn",
+        `btn-${variant}`,
+        `btn-${size}`,
+        disabled && "opacity-50 cursor-not-allowed",
+        className
+      )}
+      disabled={disabled || isLoading}
+      {...props}
+    >
+      {isLoading ? "Loading..." : children}
+    </button>
+  );
+}
+```
+
+### Hook Template
+
+```typescript
+import { useCallback, useState } from "react";
+import type { ValidationResult } from "@/validation/common";
+
+interface UseFormState {
+  values: Record<string, string>;
+  errors: Record<string, string>;
+  isSubmitting: boolean;
+}
+
+export function useForm(initialValues: Record<string, string>) {
+  const [state, setState] = useState<UseFormState>({
+    values: initialValues,
+    errors: {},
+    isSubmitting: false,
+  });
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setState((prev) => ({
+        ...prev,
+        values: { ...prev.values, [name]: value },
+      }));
+    },
+    []
+  );
+
+  return { ...state, handleChange };
+}
+```
+
+### Validation Usage
+
+```typescript
+import { validateLoginForm } from "@/validation/auth";
+import type { LoginFormData } from "@/validation/auth";
+
+function LoginForm() {
+  const handleSubmit = (data: LoginFormData) => {
+    const validation = validateLoginForm(data);
+    
+    if (!validation.success) {
+      setErrors(validation.errors || {});
+      return;
+    }
+
+    submitLogin(data);
+  };
+}
+```
+
 ## Important Notes
 
 1. **Next.js 16 has breaking changes** from earlier versions. Check `node_modules/next/dist/docs/` before assuming training data applies.
 2. **RLS is mandatory** on every new table. No table should be readable without a policy.
 3. **Business type matters:** `retail` and `fnb` businesses have different features. F&B gets table management; both get core POS. Always check `business.type` before rendering F&B-specific UI.
-4. **Git:** Author: Ngepos / bfernando@student.ciputra.ac.id / Remote: <https://github.com/UCYenyen/Ngepos.git>
+4. **Design system first:** Always reference the design tokens from globals.css — use semantic color classes (`text-ink`, `bg-surface-1`) instead of hardcoded values.
+5. **Validation everywhere:** Validate on client (UX) and server (security). Use validation functions from `src/validation/` for consistency.
+6. **Git:** Author: Ngepos / bfernando@student.ciputra.ac.id / Remote: [https://github.com/UCYenyen/Ngepos.git](https://github.com/UCYenyen/Ngepos.git)
