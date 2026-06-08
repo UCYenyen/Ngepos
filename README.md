@@ -2,6 +2,18 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Self-hosted Supabase tunnel
+
+The app talks to a self-hosted Supabase. Open the SSH tunnel before starting the dev server (forwards local `5433` to the Postgres container on the VPS):
+
+```bash
+# open the tunnel
+ssh -N -f -L 5433:172.18.0.4:5432 enthusiastrun
+
+# close the tunnel when you're done
+pkill -f "5433:172.18.0.4:5432"
+```
+
 First, run the development server:
 
 ```bash

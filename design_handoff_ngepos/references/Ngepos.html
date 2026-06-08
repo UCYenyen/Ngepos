@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ngepos — Design</title>
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: #f0eee9; }
+  [data-theme="dark"] { background: #141414; }
+  [data-theme="dark"] .design-canvas { background: #141414 !important; }
+  #root { height: 100%; }
+  /* Toolbar */
+  .nptoolbar {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 200; display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.9); backdrop-filter: blur(12px);
+    border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; padding: 6px 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1); font-family: system-ui, sans-serif;
+  }
+  [data-theme="dark"] .nptoolbar { background: rgba(38,38,38,0.92); border-color: rgba(255,255,255,0.1); }
+  .nptoolbar .tb-label { font-size: 13px; font-weight: 600; color: #555; padding: 0 8px; }
+  [data-theme="dark"] .nptoolbar .tb-label { color: #bbb; }
+  .nptoolbar .tb-seg { display: flex; background: rgba(0,0,0,0.05); border-radius: 999px; padding: 3px; gap: 2px; }
+  [data-theme="dark"] .nptoolbar .tb-seg { background: rgba(255,255,255,0.08); }
+  .nptoolbar .tb-btn {
+    border: none; background: transparent; cursor: pointer; border-radius: 999px;
+    padding: 6px 14px; font-size: 13px; font-weight: 600; color: #777;
+    display: flex; align-items: center; gap: 6px; transition: all .15s;
+  }
+  [data-theme="dark"] .nptoolbar .tb-btn { color: #999; }
+  .nptoolbar .tb-btn.on { background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  [data-theme="dark"] .nptoolbar .tb-btn.on { background: #555; color: #fff; }
+  .nptoolbar .tb-div { width: 1px; height: 22px; background: rgba(0,0,0,0.1); margin: 0 2px; }
+  [data-theme="dark"] .nptoolbar .tb-div { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="lib.jsx"></script>
+<script type="text/babel" src="screens-landing.jsx"></script>
+<script type="text/babel" src="screens-auth.jsx"></script>
+<script type="text/babel" src="screens-app.jsx"></script>
+<script type="text/babel" src="screens-pos.jsx"></script>
+<script type="text/babel" src="screens-catalog.jsx"></script>
+<script type="text/babel" src="screens-ops.jsx"></script>
+<script type="text/babel" src="screens-data.jsx"></script>
+<script type="text/babel" src="screens-account.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function Toolbar({ theme, setTheme }) {
+  return (
+    <div className="nptoolbar">
+      <span className="tb-label">Ngepos · Design</span>
+      <div className="tb-div" />
+      <div className="tb-seg">
+        <button className={'tb-btn' + (theme==='light'?' on':'')} onClick={()=>setTheme('light')}>☀ Light</button>
+        <button className={'tb-btn' + (theme==='dark'?' on':'')} onClick={()=>setTheme('dark')}>☾ Dark</button>
+      </div>
+    </div>
+  );
+}
+
+// Artboard sizes
+const W = { land: 1280, app: 1320, auth: 1040, pos: 1320 };
+
+function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('np-theme') || 'light');
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : '';
+    if (theme === 'dark') document.documentElement.setAttribute('data-theme','dark');
+    else document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('np-theme', theme);
+  }, [theme]);
+
+  return (
+    <>
+      <Toolbar theme={theme} setTheme={setTheme} />
+      <DesignCanvas>
+        <DCSection id="landing" title="Landing / Marketing" subtitle="Logged-out homepage · long-scroll, conversion-focused">
+          <DCArtboard id="landing-main" label="Landing page" width={W.land} height={6090}><LandingPage /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="auth" title="Auth & Onboarding" subtitle="(auth) route group · centered card, no sidebar">
+          <DCArtboard id="login" label="Log in" width={W.auth} height={680}><LoginScreen /></DCArtboard>
+          <DCArtboard id="login-err" label="Log in · error state" width={W.auth} height={680}><LoginErrorScreen /></DCArtboard>
+          <DCArtboard id="signup" label="Sign up" width={W.auth} height={680}><SignupScreen /></DCArtboard>
+          <DCArtboard id="onboarding" label="Onboarding · first business" width={W.auth} height={680}><OnboardingScreen /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="dashboard" title="Dashboard & Switcher" subtitle="Account-level business picker">
+          <DCArtboard id="dash" label="Dashboard · businesses" width={W.app} height={760}><DashboardScreen /></DCArtboard>
+          <DCArtboard id="dash-empty" label="Dashboard · empty state" width={W.app} height={760}><DashboardEmptyScreen /></DCArtboard>
+          <DCArtboard id="switcher" label="Business switcher (open)" width={W.app} height={760}><SwitcherScreen biz="fnb" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="pos" title="POS / Point of Sale" subtitle="Tablet-first · F&B and Retail · payment flow & receipt">
+          <DCArtboard id="pos-fnb" label="POS · F&B" width={W.pos} height={880}><PosScreen biz="fnb" /></DCArtboard>
+          <DCArtboard id="pos-retail" label="POS · Retail" width={W.pos} height={880}><PosScreen biz="retail" /></DCArtboard>
+          <DCArtboard id="pos-empty" label="POS · empty cart" width={W.pos} height={880}><PosScreen biz="fnb" empty /></DCArtboard>
+          <DCArtboard id="pay-cash" label="Payment · cash" width={W.pos} height={880}><PayCashScreen /></DCArtboard>
+          <DCArtboard id="pay-qris" label="Payment · QRIS" width={W.pos} height={880}><PayQrisScreen /></DCArtboard>
+          <DCArtboard id="receipt" label="Receipt · success" width={W.pos} height={880}><ReceiptScreen /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="products" title="Products & Categories" subtitle="Catalog management">
+          <DCArtboard id="products-fnb" label="Products · F&B" width={W.app} height={880}><ProductsScreen biz="fnb" tab="produk" /></DCArtboard>
+          <DCArtboard id="products-cat" label="Categories tab" width={W.app} height={880}><ProductsScreen biz="fnb" tab="kategori" /></DCArtboard>
+          <DCArtboard id="product-sheet" label="Add product · sheet" width={W.app} height={880}><ProductSheetScreen biz="fnb" /></DCArtboard>
+          <DCArtboard id="products-retail" label="Products · Retail" width={W.app} height={880}><ProductsScreen biz="retail" tab="produk" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="inventory" title="Inventory" subtitle="Pro/Enterprise · Starter shows the Pro lock">
+          <DCArtboard id="inv-pro" label="Inventory · Pro" width={W.app} height={880}><InventoryScreen biz="fnb" plan="pro" /></DCArtboard>
+          <DCArtboard id="inv-locked" label="Inventory · Starter (locked)" width={W.app} height={880}><InventoryScreen biz="retail" plan="starter" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="tables" title="Tables (F&B only)" subtitle="Hidden for Retail · Starter shows the Pro lock">
+          <DCArtboard id="tables-pro" label="Tables · floor" width={W.app} height={880}><TablesScreen plan="pro" /></DCArtboard>
+          <DCArtboard id="table-drawer" label="Table · order drawer" width={W.app} height={880}><TableDrawerScreen /></DCArtboard>
+          <DCArtboard id="tables-locked" label="Tables · Starter (locked)" width={W.app} height={880}><TablesScreen plan="starter" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="staff" title="Staff" subtitle="Members, roles & invitations">
+          <DCArtboard id="staff-list" label="Staff · members" width={W.app} height={880}><StaffScreen biz="fnb" /></DCArtboard>
+          <DCArtboard id="staff-invite" label="Invite staff · dialog" width={W.app} height={880}><StaffInviteScreen biz="fnb" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="analytics" title="Analytics" subtitle="Pro/Enterprise · Starter shows the Pro lock">
+          <DCArtboard id="analytics-pro" label="Analytics · dashboard" width={W.app} height={1180}><AnalyticsScreen biz="fnb" plan="pro" /></DCArtboard>
+          <DCArtboard id="analytics-locked" label="Analytics · Starter (locked)" width={W.app} height={880}><AnalyticsScreen biz="fnb" plan="starter" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="reports" title="Reports" subtitle="Pro/Enterprise · Starter shows the Pro lock">
+          <DCArtboard id="reports-pro" label="Reports" width={W.app} height={880}><ReportsScreen biz="fnb" plan="pro" /></DCArtboard>
+          <DCArtboard id="reports-locked" label="Reports · Starter (locked)" width={W.app} height={880}><ReportsScreen biz="fnb" plan="starter" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="settings" title="Settings" subtitle="Business settings · sectioned">
+          <DCArtboard id="settings-pro" label="Settings · Pro" width={W.app} height={1420}><SettingsScreen biz="fnb" plan="pro" /></DCArtboard>
+          <DCArtboard id="settings-starter" label="Settings · Starter" width={W.app} height={1420}><SettingsScreen biz="retail" plan="starter" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="billing" title="Billing" subtitle="Account-level subscription">
+          <DCArtboard id="billing-main" label="Billing & subscription" width={W.app} height={1000}><BillingScreen /></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
