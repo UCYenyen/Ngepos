@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { Business } from '@/types/business';
 
+type BusinessMemberWithBusiness = {
+  business_id: string;
+  businesses: Business;
+};
+
+type BusinessMemberRow = {
+  business_id: string;
+  businesses: Business | Business[] | null;
+};
+
 export function BusinessesList() {
   const router = useRouter();
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -24,7 +34,12 @@ export function BusinessesList() {
         .select('business_id, businesses(*)')
         .eq('user_id', user.id);
 
-      setBusinesses(data?.map((m: any) => m.businesses as Business) || []);
+      setBusinesses(
+        data?.map((m) => {
+          const row = m as BusinessMemberRow;
+          return row.businesses as Business;
+        }) || []
+      );
       setLoading(false);
     }
 
