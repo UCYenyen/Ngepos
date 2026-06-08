@@ -18,7 +18,7 @@ import { AlertCircle, Trash2, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StaffMemberResponse } from '@/types/api';
 import type { UserRole } from '@/types/business';
-import { InviteForm } from './InviteForm';
+import { InviteForm } from '../InviteForm/InviteForm';
 
 interface StaffListProps {
   businessId: string;

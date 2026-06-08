@@ -7,41 +7,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
+import type { SignupFormState } from './types';
 
 export function SignupForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [state, setState] = useState<SignupFormState>({
+    email: '',
+    password: '',
+    loading: false,
+    error: '',
+  });
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    setState((prev) => ({ ...prev, loading: true, error: '' }));
 
     try {
       const { error } = await supabaseClient.auth.signUp({
-        email,
-        password,
+        email: state.email,
+        password: state.password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) throw error;
-
       router.push('/onboarding');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed');
+      setState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Signup failed',
+      }));
     } finally {
-      setLoading(false);
+      setState((prev) => ({ ...prev, loading: false }));
     }
   }
 
   async function handleGoogleSignup() {
-    setLoading(true);
-    setError('');
+    setState((prev) => ({ ...prev, loading: true, error: '' }));
 
     try {
       const { error } = await supabaseClient.auth.signInWithOAuth({
@@ -53,8 +56,11 @@ export function SignupForm() {
 
       if (error) throw error;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google signup failed');
-      setLoading(false);
+      setState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Google signup failed',
+        loading: false,
+      }));
     }
   }
 
@@ -64,28 +70,28 @@ export function SignupForm() {
       <p className="text-sm text-slate-500 mb-6">Start using Ngepos today</p>
 
       <form onSubmit={handleSignup} className="space-y-4">
-        {error && (
-          <div className="bg-red-50 text-red-700 text-sm p-3 rounded-md">{error}</div>
+        {state.error && (
+          <div className="bg-red-50 text-red-700 text-sm p-3 rounded-md">{state.error}</div>
         )}
 
         <Input
           type="email"
           placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={state.email}
+          onChange={(e) => setState((prev) => ({ ...prev, email: e.target.value }))}
           required
         />
 
         <Input
           type="password"
           placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={state.password}
+          onChange={(e) => setState((prev) => ({ ...prev, password: e.target.value }))}
           required
         />
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? 'Creating account...' : 'Sign Up'}
+        <Button type="submit" className="w-full" disabled={state.loading}>
+          {state.loading ? 'Creating account...' : 'Sign Up'}
         </Button>
       </form>
 
@@ -103,7 +109,7 @@ export function SignupForm() {
         variant="outline"
         className="w-full"
         onClick={handleGoogleSignup}
-        disabled={loading}
+        disabled={state.loading}
       >
         Sign up with Google
       </Button>

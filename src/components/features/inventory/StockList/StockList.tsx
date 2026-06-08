@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InventoryProduct } from '@/types/inventory';
-import { StockAdjustment } from './StockAdjustment';
-import { StockHistory } from './StockHistory';
+import { StockAdjustment } from '../StockAdjustment/StockAdjustment';
+import { StockHistory } from '../StockHistory/StockHistory';
 
 interface StockListProps {
   businessId: string;

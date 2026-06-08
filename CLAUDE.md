@@ -92,7 +92,7 @@ src/app/
 - **Path alias:** `@/` resolves to `src/`. Always use `@/` for internal imports.
 - **Class merging:** Use `cn()` from `src/lib/utils.ts` for all Tailwind class merges.
 - **Server vs Client Components:** Default to Server Components. Add `"use client"` only when needed (interactivity, hooks, browser APIs).
-- **Tests:** Write alongside code (`Component.test.tsx` next to `Component.tsx`). Vitest runs in happy-dom.
+- **Tests:** All unit tests live in the `src/tests/` folder, which mirrors the rest of the `src/` directory tree — never colocated with source (see [Testing Organization](#testing-organization)). Vitest runs in happy-dom.
 
 ## Type System & Code Organization
 
@@ -115,75 +115,66 @@ src/types/
 
 ### Component Organization
 
-Components are organized by feature with each component in its own folder in `src/components/<feature_name>/<component_name>/`:
+Feature components are organized by feature with each component in its own folder in `src/components/features/<feature_name>/<component_name>/`. Shared `common` and `layout` components stay at the top level of `src/components/` since they are not feature-specific:
 
 ```plaintext
 src/components/
-├── auth/
-│   ├── LoginForm/
-│   │   ├── LoginForm.tsx
-│   │   ├── LoginForm.test.tsx
-│   │   └── types.ts
-│   └── SignupForm/
-│       ├── SignupForm.tsx
-│       ├── SignupForm.test.tsx
-│       └── types.ts
-├── pos/
-│   ├── TransactionCart/
-│   │   ├── TransactionCart.tsx
-│   │   ├── TransactionCart.test.tsx
-│   │   └── types.ts
-│   └── PaymentMethod/
-│       ├── PaymentMethod.tsx
-│       ├── PaymentMethod.test.tsx
-│       └── types.ts
-├── products/
-│   ├── ProductCard/
-│   │   ├── ProductCard.tsx
-│   │   ├── ProductCard.test.tsx
-│   │   └── types.ts
-│   └── CategoryFilter/
-│       ├── CategoryFilter.tsx
-│       ├── CategoryFilter.test.tsx
-│       └── types.ts
-├── inventory/
-├── tables/
-├── staff/
-├── analytics/
-├── reports/
-├── settings/
+├── features/
+│   ├── auth/
+│   │   ├── LoginForm/
+│   │   │   ├── LoginForm.tsx
+│   │   │   └── types.ts
+│   │   └── SignupForm/
+│   │       ├── SignupForm.tsx
+│   │       └── types.ts
+│   ├── pos/
+│   │   ├── TransactionCart/
+│   │   │   ├── TransactionCart.tsx
+│   │   │   └── types.ts
+│   │   └── PaymentMethod/
+│   │       ├── PaymentMethod.tsx
+│   │       └── types.ts
+│   ├── products/
+│   │   ├── ProductCard/
+│   │   │   ├── ProductCard.tsx
+│   │   │   └── types.ts
+│   │   └── CategoryFilter/
+│   │       ├── CategoryFilter.tsx
+│   │       └── types.ts
+│   ├── inventory/
+│   ├── tables/
+│   ├── staff/
+│   ├── analytics/
+│   ├── reports/
+│   └── settings/
 ├── common/
 │   ├── Button/
 │   │   ├── Button.tsx
-│   │   ├── Button.test.tsx
 │   │   └── types.ts
 │   ├── Input/
 │   │   ├── Input.tsx
-│   │   ├── Input.test.tsx
 │   │   └── types.ts
 │   ├── Modal/
 │   │   ├── Modal.tsx
-│   │   ├── Modal.test.tsx
 │   │   └── types.ts
 │   └── Card/
 │       ├── Card.tsx
-│       ├── Card.test.tsx
 │       └── types.ts
 └── layout/
     ├── Sidebar/
     │   ├── Sidebar.tsx
-    │   ├── Sidebar.test.tsx
     │   └── types.ts
     └── Header/
         ├── Header.tsx
-        ├── Header.test.tsx
         └── types.ts
 ```
 
 **Component Folder Structure Rules:**
 
-- Each component gets its own folder: `<FeatureName>/<ComponentName>/`
-- Include: `ComponentName.tsx`, `ComponentName.test.tsx`, `types.ts` (component-specific types)
+- Feature components live under `features/`: `src/components/features/<FeatureName>/<ComponentName>/`
+- Shared components live at the top level: `src/components/common/<ComponentName>/` and `src/components/layout/<ComponentName>/`
+- Each component gets its own folder containing `ComponentName.tsx` and `types.ts` (component-specific types)
+- Unit tests do **not** live beside the component — they go in the `src/tests/` folder (see [Testing Organization](#testing-organization))
 - Component file should be the primary export
 - Keep types colocated with the component for context
 
@@ -262,6 +253,50 @@ const handleSubmit = async (formData: LoginInput) => {
 - Validate on both client (UX) and server (security) sides
 - Custom validation logic via `.refine()` or `.superRefine()` for cross-field validation
 - Async validation functions handle Zod errors and return structured results
+
+### Testing Organization
+
+All unit tests live in the `src/tests/` folder, which mirrors the rest of the `src/` directory tree. Tests are **never** colocated with source files. Import the unit under test through the `@/` alias so a test's location stays decoupled from the source it covers:
+
+```plaintext
+src/tests/
+├── components/
+│   ├── features/
+│   │   ├── auth/
+│   │   │   ├── LoginForm.test.tsx
+│   │   │   ├── OnboardingForm.test.tsx
+│   │   │   └── SignupForm.test.tsx
+│   │   ├── pos/
+│   │   │   ├── Cart.test.tsx
+│   │   │   ├── PaymentForm.test.tsx
+│   │   │   └── POSClient.test.tsx
+│   │   ├── inventory/
+│   │   │   ├── StockList.test.tsx
+│   │   │   └── StockAdjustment.test.tsx
+│   │   └── staff/
+│   │       ├── StaffList.test.tsx
+│   │       └── InviteForm.test.tsx
+│   ├── common/
+│   │   └── Button.test.tsx
+│   └── layout/
+│       └── Sidebar.test.tsx
+├── hooks/
+│   ├── auth/
+│   │   └── useAuth.test.ts
+│   └── pos/
+│       └── useCart.test.ts
+└── validation/
+    ├── auth.test.ts
+    └── pos.test.ts
+```
+
+**Testing Rules:**
+
+- One test file per unit, named `<Name>.test.ts(x)`, placed at the path under `src/tests/` that mirrors its source location under `src/`.
+- Import the unit under test via the `@/` alias (e.g., `import { LoginForm } from '@/components/features/auth/LoginForm/LoginForm'`) — never reach into `src/` with a relative path.
+- Component tests use React Testing Library; Vitest runs in happy-dom.
+- Vitest auto-discovers `src/tests/` via its default glob and resolves `@/` to `src/` — no extra config needed.
+- Run the full suite with `pnpm test`, or a single file with `pnpm test <path>`.
 
 ### Code Quality Standards
 

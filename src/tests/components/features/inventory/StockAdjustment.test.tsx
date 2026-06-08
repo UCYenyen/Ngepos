@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { StockAdjustment } from './StockAdjustment';
+import { StockAdjustment } from '@/components/features/inventory/StockAdjustment/StockAdjustment';
 
 describe('StockAdjustment', () => {
   beforeEach(() => {

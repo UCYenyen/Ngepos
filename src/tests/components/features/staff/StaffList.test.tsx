@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { StaffList } from './StaffList';
+import { StaffList } from '@/components/features/staff/StaffList/StaffList';
 import type { StaffMemberResponse } from '@/types/api';
 
 const mockStaff: StaffMemberResponse[] = [

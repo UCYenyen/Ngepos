@@ -11,26 +11,26 @@ import { Label } from '@/components/ui/label';
 import type { SubscriptionPlan } from '@/types/auth';
 import type { BusinessType } from '@/types/business';
 import { PLANS } from '@/lib/plans';
-
-type OnboardingStep = 'plan' | 'business';
+import type { OnboardingFormState } from './types';
 
 export function OnboardingForm() {
   const router = useRouter();
-  const [step, setStep] = useState<OnboardingStep>('plan');
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>('starter');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [businessName, setBusinessName] = useState('');
-  const [businessType, setBusinessType] = useState<BusinessType>('retail');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [state, setState] = useState<OnboardingFormState>({
+    step: 'plan',
+    selectedPlan: 'starter',
+    billingCycle: 'monthly',
+    businessName: '',
+    businessType: 'retail',
+    loading: false,
+    error: '',
+  });
 
-  async function handlePlanSelection() {
-    setStep('business');
+  function handlePlanSelection() {
+    setState((prev) => ({ ...prev, step: 'business' }));
   }
 
   async function handleCreateBusiness() {
-    setLoading(true);
-    setError('');
+    setState((prev) => ({ ...prev, loading: true, error: '' }));
 
     try {
       const {
@@ -42,8 +42,8 @@ export function OnboardingForm() {
         .from('businesses')
         .insert({
           owner_id: user.id,
-          name: businessName,
-          type: businessType,
+          name: state.businessName,
+          type: state.businessType,
         })
         .select()
         .single();
@@ -60,7 +60,7 @@ export function OnboardingForm() {
 
       const now = new Date();
       const periodEnd = new Date(now);
-      if (billingCycle === 'yearly') {
+      if (state.billingCycle === 'yearly') {
         periodEnd.setFullYear(periodEnd.getFullYear() + 1);
       } else {
         periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -68,8 +68,8 @@ export function OnboardingForm() {
 
       await supabaseClient.from('subscriptions').insert({
         user_id: user.id,
-        plan: selectedPlan,
-        billing_cycle: billingCycle,
+        plan: state.selectedPlan,
+        billing_cycle: state.billingCycle,
         status: 'active',
         period_start: now.toISOString(),
         period_end: periodEnd.toISOString(),
@@ -78,13 +78,16 @@ export function OnboardingForm() {
 
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to complete onboarding');
+      setState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Failed to complete onboarding',
+      }));
     } finally {
-      setLoading(false);
+      setState((prev) => ({ ...prev, loading: false }));
     }
   }
 
-  if (step === 'plan') {
+  if (state.step === 'plan') {
     return (
       <div className="space-y-6">
         <div>
@@ -92,12 +95,15 @@ export function OnboardingForm() {
           <p className="text-slate-600">Select the plan that fits your business</p>
         </div>
 
-        <RadioGroup value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as SubscriptionPlan)}>
+        <RadioGroup
+          value={state.selectedPlan}
+          onValueChange={(v) => setState((prev) => ({ ...prev, selectedPlan: v as SubscriptionPlan }))}
+        >
           {Object.entries(PLANS).map(([plan, config]) => (
             <Card
               key={plan}
               className="p-4 cursor-pointer hover:border-blue-500"
-              onClick={() => setSelectedPlan(plan as SubscriptionPlan)}
+              onClick={() => setState((prev) => ({ ...prev, selectedPlan: plan as SubscriptionPlan }))}
             >
               <div className="flex items-start space-x-3">
                 <RadioGroupItem value={plan} id={plan} />
@@ -114,7 +120,10 @@ export function OnboardingForm() {
 
         <div className="space-y-2">
           <Label>Billing Cycle</Label>
-          <RadioGroup value={billingCycle} onValueChange={(v) => setBillingCycle(v as 'monthly' | 'yearly')}>
+          <RadioGroup
+            value={state.billingCycle}
+            onValueChange={(v) => setState((prev) => ({ ...prev, billingCycle: v as 'monthly' | 'yearly' }))}
+          >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="monthly" id="monthly" />
               <Label htmlFor="monthly">Monthly</Label>
@@ -140,20 +149,21 @@ export function OnboardingForm() {
         <p className="text-slate-600">You can add more businesses later</p>
       </div>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 text-sm p-3 rounded-md">{error}</div>
-      )}
+      {state.error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-md">{state.error}</div>}
 
       <Input
         placeholder="Business Name"
-        value={businessName}
-        onChange={(e) => setBusinessName(e.target.value)}
+        value={state.businessName}
+        onChange={(e) => setState((prev) => ({ ...prev, businessName: e.target.value }))}
         required
       />
 
       <div className="space-y-2">
         <Label>Business Type</Label>
-        <RadioGroup value={businessType} onValueChange={(v) => setBusinessType(v as BusinessType)}>
+        <RadioGroup
+          value={state.businessType}
+          onValueChange={(v) => setState((prev) => ({ ...prev, businessType: v as BusinessType }))}
+        >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="retail" id="retail" />
             <Label htmlFor="retail">Retail Store</Label>
@@ -166,11 +176,15 @@ export function OnboardingForm() {
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={() => setStep('plan')} className="flex-1">
+        <Button
+          variant="outline"
+          onClick={() => setState((prev) => ({ ...prev, step: 'plan' }))}
+          className="flex-1"
+        >
           Back
         </Button>
-        <Button onClick={handleCreateBusiness} disabled={loading || !businessName} className="flex-1">
-          {loading ? 'Creating...' : 'Create Business'}
+        <Button onClick={handleCreateBusiness} disabled={state.loading || !state.businessName} className="flex-1">
+          {state.loading ? 'Creating...' : 'Create Business'}
         </Button>
       </div>
     </div>

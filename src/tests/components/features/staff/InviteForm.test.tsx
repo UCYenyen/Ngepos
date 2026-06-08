@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { InviteForm } from './InviteForm';
+import { InviteForm } from '@/components/features/staff/InviteForm/InviteForm';
 
 describe('InviteForm', () => {
   beforeEach(() => {

@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useCart } from '@/hooks/pos/useCart';
-import { ProductSelector } from './ProductSelector';
-import { Cart } from './Cart';
-import { PaymentForm } from './PaymentForm';
-import { Receipt } from './Receipt';
+import { ProductSelector } from '../ProductSelector/ProductSelector';
+import { Cart } from '../Cart/Cart';
+import { PaymentForm } from '../PaymentForm/PaymentForm';
+import { Receipt } from '../Receipt/Receipt';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Business } from '@/types/business';
 import type { CartItem, PaymentMethod, Transaction, TransactionItem } from '@/types/pos';

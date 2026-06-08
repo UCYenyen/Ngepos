@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { OnboardingForm } from '@/components/auth/OnboardingForm';
+import { OnboardingForm } from '@/components/features/auth/OnboardingForm/OnboardingForm';
 
 export const metadata: Metadata = {
   title: 'Get Started - Ngepos',

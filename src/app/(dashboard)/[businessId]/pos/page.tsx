@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { requireBusinessAccess } from '@/lib/auth';
-import POSClient from '@/components/pos/POSClient';
+import POSClient from '@/components/features/pos/POSClient/POSClient';
 
 export const metadata: Metadata = {
   title: 'POS - Ngepos',

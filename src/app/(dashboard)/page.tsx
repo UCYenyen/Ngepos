@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BusinessesList } from '@/components/dashboard/BusinessesList';
+import { BusinessesList } from '@/components/features/dashboard/BusinessesList/BusinessesList';
 
 export const metadata: Metadata = {
   title: 'Dashboard - Ngepos',
