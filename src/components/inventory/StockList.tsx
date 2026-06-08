@@ -11,6 +11,7 @@ import { AlertCircle, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 
 import { cn } from '@/lib/utils';
 import type { InventoryProduct } from '@/types/inventory';
 import { StockAdjustment } from './StockAdjustment';
+import { StockHistory } from './StockHistory';
 
 interface StockListProps {
   businessId: string;
@@ -33,6 +34,8 @@ export function StockList({ businessId }: StockListProps) {
   const [expandedProducts, setExpandedProducts] = useState<ExpandedProduct>({});
   const [selectedProduct, setSelectedProduct] = useState<InventoryProduct | null>(null);
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [selectedProductForHistory, setSelectedProductForHistory] = useState<InventoryProduct | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     const fetchInventory = async () => {
@@ -136,6 +139,11 @@ export function StockList({ businessId }: StockListProps) {
   const handleAdjustStock = (product: InventoryProduct) => {
     setSelectedProduct(product);
     setAdjustmentOpen(true);
+  };
+
+  const handleViewHistory = (product: InventoryProduct) => {
+    setSelectedProductForHistory(product);
+    setHistoryOpen(true);
   };
 
   const handleAdjustmentComplete = async () => {
@@ -263,6 +271,13 @@ export function StockList({ businessId }: StockListProps) {
                         >
                           Adjust Stock
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewHistory(product)}
+                        >
+                          View History
+                        </Button>
                         {product.has_variants && (
                           <Button
                             size="sm"
@@ -306,6 +321,16 @@ export function StockList({ businessId }: StockListProps) {
           onAdjustmentComplete={handleAdjustmentComplete}
           open={adjustmentOpen}
           onOpenChange={setAdjustmentOpen}
+        />
+      )}
+
+      {selectedProductForHistory && (
+        <StockHistory
+          businessId={businessId}
+          productId={selectedProductForHistory.id}
+          productName={selectedProductForHistory.name}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
         />
       )}
     </div>
