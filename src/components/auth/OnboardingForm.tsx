@@ -59,10 +59,12 @@ export function OnboardingForm() {
         });
 
       const now = new Date();
-      const periodEnd = new Date(
-        billingCycle === 'yearly' ? now.getFullYear() + 1 : now.getMonth() + 1,
-        now.getDate()
-      );
+      const periodEnd = new Date(now);
+      if (billingCycle === 'yearly') {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+      }
 
       await supabaseClient.from('subscriptions').insert({
         user_id: user.id,
