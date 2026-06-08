@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Verify product exists and belongs to business
     const { data: product, error: productError } = await supabase
       .from('products')
-      .select('id, has_variants, track_stock')
+      .select('id, has_variants, track_stock, stock_qty')
       .eq('id', productId)
       .eq('business_id', businessId)
       .single();
@@ -84,11 +84,11 @@ export async function POST(request: NextRequest) {
     // Update product stock if track_stock is enabled
     if (product.track_stock) {
       if (variantId) {
-        // Fetch current stock for variant
         const { data: variant, error: variantFetchError } = await supabase
           .from('product_variants')
           .select('stock_qty')
           .eq('id', variantId)
+          .eq('product_id', productId)
           .single();
 
         if (variantFetchError) throw variantFetchError;
@@ -101,16 +101,7 @@ export async function POST(request: NextRequest) {
 
         if (variantUpdateError) throw variantUpdateError;
       } else {
-        // Fetch current stock for product
-        const { data: prod, error: prodFetchError } = await supabase
-          .from('products')
-          .select('stock_qty')
-          .eq('id', productId)
-          .single();
-
-        if (prodFetchError) throw prodFetchError;
-
-        const newStock = (prod?.stock_qty || 0) + quantity_change;
+        const newStock = (product.stock_qty || 0) + quantity_change;
         const { error: productUpdateError } = await supabase
           .from('products')
           .update({ stock_qty: newStock })

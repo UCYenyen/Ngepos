@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase';
 import { canManageInventory } from '@/lib/permissions';
+import { ProductRow, ProductVariantRow, CategoryRow } from '@/types/operations';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -19,6 +20,11 @@ interface InventoryResponse {
     name: string;
     stock_qty: number;
   }>;
+}
+
+interface ProductWithRelations extends ProductRow {
+  categories: CategoryRow | null;
+  product_variants: ProductVariantRow[];
 }
 
 export async function GET(request: NextRequest) {
@@ -77,12 +83,14 @@ export async function GET(request: NextRequest) {
 
     if (productsError) throw productsError;
 
-    const inventory: InventoryResponse[] = (products || []).map((product: any) => {
+    const typedProducts = products as unknown as ProductWithRelations[] | null;
+
+    const inventory: InventoryResponse[] = (typedProducts || []).map((product) => {
       let currentStock = 0;
 
       if (product.has_variants && product.product_variants && product.product_variants.length > 0) {
         currentStock = product.product_variants.reduce(
-          (sum: number, v: any) => sum + (v.stock_qty || 0),
+          (sum: number, v: ProductVariantRow) => sum + (v.stock_qty || 0),
           0
         );
       } else {

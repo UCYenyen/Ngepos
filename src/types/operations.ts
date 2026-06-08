@@ -2,6 +2,37 @@ import type { UserRole } from './business';
 
 export type StockMovementType = 'sale' | 'restock' | 'adjustment' | 'damage';
 
+export interface ProductRow {
+  id: string;
+  name: string;
+  sku: string | null;
+  price: number;
+  category_id: string | null;
+  track_stock: boolean;
+  has_variants: boolean;
+  stock_qty: number;
+  low_stock_threshold: number | null;
+  created_at: string;
+}
+
+export interface ProductVariantRow {
+  id: string;
+  product_id: string;
+  name: string;
+  price_modifier: number;
+  sku: string | null;
+  stock_qty: number;
+  created_at: string;
+}
+
+export interface CategoryRow {
+  id: string;
+  business_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
 export interface StockMovement {
   id: string;
   business_id: string;

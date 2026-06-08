@@ -1,7 +1,35 @@
 import { createServerClient } from '@/lib/supabase';
 import { canViewAnalytics } from '@/lib/permissions';
+import { StockMovement } from '@/types/operations';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+
+interface ProductData {
+  name: string;
+}
+
+interface VariantData {
+  name: string;
+}
+
+interface UserData {
+  email: string;
+  full_name: string | null;
+}
+
+interface StockMovementData {
+  id: string;
+  product_id: string;
+  variant_id: string | null;
+  type: 'sale' | 'restock' | 'adjustment' | 'damage';
+  quantity_change: number;
+  note: string | null;
+  created_by: string;
+  created_at: string;
+  products: ProductData | null;
+  product_variants: VariantData | null;
+  created_by_user: UserData | null;
+}
 
 interface StockMovementResponse {
   id: string;
@@ -113,9 +141,11 @@ export async function GET(request: NextRequest) {
 
     if (movementsError) throw movementsError;
 
+    const typedMovements = movements as unknown as StockMovementData[] | null;
+
     // Transform response
-    const transformedMovements: StockMovementResponse[] = (movements || []).map(
-      (movement: any) => ({
+    const transformedMovements: StockMovementResponse[] = (typedMovements || []).map(
+      (movement) => ({
         id: movement.id,
         product_id: movement.product_id,
         product_name: movement.products?.name || 'Unknown Product',
