@@ -1,7 +1,79 @@
 import { createServerClient } from '@/lib/supabase';
 import { canManageInventory } from '@/lib/permissions';
+import { isLowStock } from '@/lib/inventory-alerts';
+import { sendLowStockAlert } from '@/lib/notifications/email';
+import { resolveBusinessOwnerEmail } from '@/lib/notifications/recipient';
+import type { InventoryProduct } from '@/types/inventory';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+
+interface AdjustedProductSnapshot {
+  id: string;
+  name: string;
+  sku: string | null;
+  category_id: string | null;
+  price: number;
+  track_stock: boolean;
+  has_variants: boolean;
+  stock_qty: number | null;
+  low_stock_threshold: number | null;
+}
+
+async function dispatchLowStockAlertIfNeeded(
+  supabase: ReturnType<typeof createServerClient>,
+  businessId: string,
+  productId: string
+): Promise<void> {
+  try {
+    const { data: product } = await supabase
+      .from('products')
+      .select(
+        'id, name, sku, category_id, price, track_stock, has_variants, stock_qty, low_stock_threshold, product_variants(stock_qty)'
+      )
+      .eq('id', productId)
+      .eq('business_id', businessId)
+      .single<AdjustedProductSnapshot & { product_variants: { stock_qty: number }[] }>();
+
+    if (!product || !product.track_stock) {
+      return;
+    }
+
+    const currentStock = product.has_variants
+      ? (product.product_variants || []).reduce((sum, v) => sum + (v.stock_qty || 0), 0)
+      : product.stock_qty || 0;
+
+    if (!isLowStock(currentStock, product.low_stock_threshold)) {
+      return;
+    }
+
+    const recipient = await resolveBusinessOwnerEmail(supabase, businessId);
+    if (!recipient) {
+      return;
+    }
+
+    const lowStockProduct: InventoryProduct = {
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      category_id: product.category_id,
+      category_name: null,
+      price: product.price,
+      current_stock: currentStock,
+      low_stock_threshold: product.low_stock_threshold,
+      track_stock: product.track_stock,
+      has_variants: product.has_variants,
+      variants: [],
+    };
+
+    await sendLowStockAlert({
+      to: recipient.email,
+      businessName: recipient.businessName,
+      products: [lowStockProduct],
+    });
+  } catch (error) {
+    console.error('Low-stock alert dispatch failed:', error);
+  }
+}
 
 interface StockAdjustmentRequest {
   businessId: string;
@@ -111,6 +183,8 @@ export async function POST(request: NextRequest) {
         if (productUpdateError) throw productUpdateError;
       }
     }
+
+    await dispatchLowStockAlertIfNeeded(supabase, businessId, productId);
 
     return NextResponse.json({
       success: true,

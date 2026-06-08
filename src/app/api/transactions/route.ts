@@ -1,4 +1,8 @@
 import { createServerClient } from '@/lib/supabase';
+import { getLowStockItems } from '@/lib/inventory-alerts';
+import { sendLowStockAlert } from '@/lib/notifications/email';
+import { resolveBusinessOwnerEmail } from '@/lib/notifications/recipient';
+import type { InventoryProduct } from '@/types/inventory';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -10,6 +14,83 @@ interface TransactionItemInput {
   quantity: number;
   discount_amount: number;
   subtotal: number;
+}
+
+interface SoldProductSnapshot {
+  id: string;
+  name: string;
+  sku: string | null;
+  category_id: string | null;
+  price: number;
+  track_stock: boolean;
+  has_variants: boolean;
+  stock_qty: number | null;
+  low_stock_threshold: number | null;
+  product_variants: { stock_qty: number }[];
+}
+
+async function dispatchLowStockAlertForSoldItems(
+  supabase: ReturnType<typeof createServerClient>,
+  businessId: string,
+  items: TransactionItemInput[]
+): Promise<void> {
+  try {
+    const productIds = [...new Set(items.map((item) => item.product_id))];
+    if (productIds.length === 0) {
+      return;
+    }
+
+    const { data: products } = await supabase
+      .from('products')
+      .select(
+        'id, name, sku, category_id, price, track_stock, has_variants, stock_qty, low_stock_threshold, product_variants(stock_qty)'
+      )
+      .eq('business_id', businessId)
+      .in('id', productIds)
+      .returns<SoldProductSnapshot[]>();
+
+    if (!products || products.length === 0) {
+      return;
+    }
+
+    const inventory: InventoryProduct[] = products.map((product) => {
+      const currentStock = product.has_variants
+        ? (product.product_variants || []).reduce((sum, v) => sum + (v.stock_qty || 0), 0)
+        : product.stock_qty || 0;
+
+      return {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        category_id: product.category_id,
+        category_name: null,
+        price: product.price,
+        current_stock: currentStock,
+        low_stock_threshold: product.low_stock_threshold,
+        track_stock: product.track_stock,
+        has_variants: product.has_variants,
+        variants: [],
+      };
+    });
+
+    const lowStockItems = getLowStockItems(inventory);
+    if (lowStockItems.length === 0) {
+      return;
+    }
+
+    const recipient = await resolveBusinessOwnerEmail(supabase, businessId);
+    if (!recipient) {
+      return;
+    }
+
+    await sendLowStockAlert({
+      to: recipient.email,
+      businessName: recipient.businessName,
+      products: lowStockItems,
+    });
+  } catch (error) {
+    console.error('Low-stock alert dispatch failed:', error);
+  }
 }
 
 interface CreateTransactionRequest {
@@ -80,6 +161,8 @@ export async function POST(request: NextRequest) {
       console.error('Error creating transaction:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    await dispatchLowStockAlertForSoldItems(supabase, businessId, items);
 
     return NextResponse.json(transaction);
   } catch (error) {
