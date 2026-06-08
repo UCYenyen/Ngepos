@@ -205,6 +205,10 @@ const resolveOwnerPlan = async (
     return null;
   }
 
+  if (rows[0].status !== "active") {
+    return null;
+  }
+
   return rows[0].plan;
 };
 
