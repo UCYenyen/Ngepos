@@ -119,7 +119,9 @@ export function AnalyticsClient({ businessId }: AnalyticsClientProps) {
   function handleCustomEnd(date: Date | undefined): void {
     if (!date) return;
     setPreset('custom');
-    setRange((prev) => ({ ...prev, end: date.toISOString() }));
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    setRange((prev) => ({ ...prev, end: end.toISOString() }));
   }
 
   return (
