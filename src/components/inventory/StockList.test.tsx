@@ -8,7 +8,7 @@ describe('StockList', () => {
   });
 
   it('renders loading state initially', () => {
-    const fetchMock = vi.fn(() => new Promise(() => {}));
+    const fetchMock = vi.fn((): Promise<Response> => new Promise(() => {}));
     global.fetch = fetchMock;
     render(<StockList businessId="bus1" />);
     expect(screen.getByText(/loading inventory/i)).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('StockList', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => mockProducts,
-    });
+    } as Response);
     global.fetch = fetchMock;
 
     render(<StockList businessId="bus1" />);
@@ -47,7 +47,7 @@ describe('StockList', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       statusText: 'Server Error',
-    });
+    } as Response);
     global.fetch = fetchMock;
 
     render(<StockList businessId="bus1" />);

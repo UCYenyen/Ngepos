@@ -6,7 +6,6 @@ import type { StaffMemberResponse } from '@/types/api';
 const mockStaff: StaffMemberResponse[] = [
   {
     id: 'user-1',
-    user_id: 'user-1',
     email: 'owner@example.com',
     name: 'Owner User',
     role: 'owner',
@@ -14,7 +13,6 @@ const mockStaff: StaffMemberResponse[] = [
   },
   {
     id: 'user-2',
-    user_id: 'user-2',
     email: 'manager@example.com',
     name: 'Manager User',
     role: 'manager',
@@ -22,7 +20,6 @@ const mockStaff: StaffMemberResponse[] = [
   },
   {
     id: 'user-3',
-    user_id: 'user-3',
     email: 'cashier@example.com',
     name: 'Cashier User',
     role: 'cashier',
@@ -36,7 +33,7 @@ describe('StaffList', () => {
   });
 
   it('renders loading state initially', async () => {
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((): Promise<Response> =>
       new Promise((resolve) =>
         setTimeout(() => resolve(new Response(JSON.stringify({ data: { staff: [] } }))), 100)
       )
@@ -51,7 +48,7 @@ describe('StaffList', () => {
   });
 
   it('fetches and displays staff members', async () => {
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((): Promise<Response> =>
       Promise.resolve(
         new Response(JSON.stringify({ data: { staff: mockStaff } }), { status: 200 })
       )
@@ -67,7 +64,7 @@ describe('StaffList', () => {
   });
 
   it('displays role badges', async () => {
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((): Promise<Response> =>
       Promise.resolve(
         new Response(JSON.stringify({ data: { staff: mockStaff } }), { status: 200 })
       )
@@ -83,7 +80,7 @@ describe('StaffList', () => {
   });
 
   it('shows invite button', async () => {
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((): Promise<Response> =>
       Promise.resolve(
         new Response(JSON.stringify({ data: { staff: mockStaff } }), { status: 200 })
       )
@@ -97,7 +94,7 @@ describe('StaffList', () => {
   });
 
   it('shows error when fetch fails', async () => {
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((): Promise<Response> =>
       Promise.resolve(
         new Response(JSON.stringify({ error: 'Server error' }), { status: 500 })
       )
@@ -111,7 +108,7 @@ describe('StaffList', () => {
   });
 
   it('handles empty staff list', async () => {
-    global.fetch = vi.fn(() =>
+    global.fetch = vi.fn((): Promise<Response> =>
       Promise.resolve(
         new Response(JSON.stringify({ data: { staff: [] } }), { status: 200 })
       )

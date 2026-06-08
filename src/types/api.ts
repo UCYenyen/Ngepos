@@ -2,7 +2,6 @@ import type { UserRole } from '@/types/business';
 
 export interface StaffMemberResponse {
   id: string;
-  user_id: string;
   email: string;
   name: string;
   role: UserRole;

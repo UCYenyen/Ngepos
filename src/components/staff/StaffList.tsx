@@ -6,6 +6,14 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AlertCircle, Trash2, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StaffMemberResponse } from '@/types/api';
@@ -18,19 +26,38 @@ interface StaffListProps {
 
 type SortBy = 'name' | 'role' | 'date';
 
+interface RoleChangeState {
+  dialogOpen: boolean;
+  selectedStaff: StaffMemberResponse | null;
+  newRole: UserRole;
+  loading: boolean;
+  error: string | null;
+}
+
+interface RemoveState {
+  staffId: string | null;
+  loading: boolean;
+  error: string | null;
+}
+
 export function StaffList({ businessId }: StaffListProps) {
   const [staff, setStaff] = useState<StaffMemberResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('date');
-  const [selectedStaff, setSelectedStaff] = useState<StaffMemberResponse | null>(null);
-  const [roleChangeDialog, setRoleChangeDialog] = useState(false);
-  const [newRole, setNewRole] = useState<UserRole>('cashier');
-  const [roleChangeLoading, setRoleChangeLoading] = useState(false);
-  const [roleChangeError, setRoleChangeError] = useState<string | null>(null);
   const [inviteFormOpen, setInviteFormOpen] = useState(false);
-  const [removeLoading, setRemoveLoading] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [roleChangeState, setRoleChangeState] = useState<RoleChangeState>({
+    dialogOpen: false,
+    selectedStaff: null,
+    newRole: 'cashier',
+    loading: false,
+    error: null,
+  });
+  const [removeState, setRemoveState] = useState<RemoveState>({
+    staffId: null,
+    loading: false,
+    error: null,
+  });
 
   const fetchStaff = useCallback(async () => {
     try {
@@ -59,20 +86,29 @@ export function StaffList({ businessId }: StaffListProps) {
 
   const handleRoleChange = (member: StaffMemberResponse) => {
     if (member.role === 'owner') return;
-    setSelectedStaff(member);
-    setNewRole(member.role === 'manager' ? 'cashier' : 'manager');
-    setRoleChangeError(null);
-    setRoleChangeDialog(true);
+    setRoleChangeState({
+      dialogOpen: true,
+      selectedStaff: member,
+      newRole: member.role === 'manager' ? 'cashier' : 'manager',
+      loading: false,
+      error: null,
+    });
   };
 
   const handleRemove = async (member: StaffMemberResponse) => {
     if (member.role === 'owner') return;
-    if (!confirm(`Remove ${member.name} from staff?`)) return;
+    setRemoveState({
+      staffId: member.id,
+      loading: true,
+      error: null,
+    });
+  };
+
+  const confirmRemove = async () => {
+    if (!removeState.staffId) return;
 
     try {
-      setRemoveLoading(member.id);
-      setRemoveError(null);
-      const response = await fetch(`/api/staff/${member.id}`, {
+      const response = await fetch(`/api/staff/${removeState.staffId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId }),
@@ -83,24 +119,30 @@ export function StaffList({ businessId }: StaffListProps) {
         throw new Error(data.error || 'Failed to remove staff');
       }
 
+      setRemoveState({
+        staffId: null,
+        loading: false,
+        error: null,
+      });
       await fetchStaff();
     } catch (err) {
-      setRemoveError(err instanceof Error ? err.message : 'Failed to remove staff');
-    } finally {
-      setRemoveLoading(null);
+      setRemoveState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Failed to remove staff',
+        loading: false,
+      }));
     }
   };
 
   const handleRoleSubmit = async () => {
-    if (!selectedStaff) return;
+    if (!roleChangeState.selectedStaff) return;
 
     try {
-      setRoleChangeLoading(true);
-      setRoleChangeError(null);
-      const response = await fetch(`/api/staff/${selectedStaff.id}`, {
+      setRoleChangeState((prev) => ({ ...prev, loading: true, error: null }));
+      const response = await fetch(`/api/staff/${roleChangeState.selectedStaff.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId, role: newRole }),
+        body: JSON.stringify({ businessId, role: roleChangeState.newRole }),
       });
 
       if (!response.ok) {
@@ -108,13 +150,20 @@ export function StaffList({ businessId }: StaffListProps) {
         throw new Error(data.error || 'Failed to update role');
       }
 
-      setRoleChangeDialog(false);
-      setSelectedStaff(null);
+      setRoleChangeState({
+        dialogOpen: false,
+        selectedStaff: null,
+        newRole: 'cashier',
+        loading: false,
+        error: null,
+      });
       await fetchStaff();
     } catch (err) {
-      setRoleChangeError(err instanceof Error ? err.message : 'Failed to update role');
-    } finally {
-      setRoleChangeLoading(false);
+      setRoleChangeState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Failed to update role',
+        loading: false,
+      }));
     }
   };
 
@@ -204,10 +253,10 @@ export function StaffList({ businessId }: StaffListProps) {
         <Button onClick={() => setInviteFormOpen(true)}>Invite New Staff</Button>
       </div>
 
-      {removeError && (
+      {removeState.error && (
         <Alert className="border-red-200 bg-red-50">
           <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-700">{removeError}</AlertDescription>
+          <AlertDescription className="text-red-700">{removeState.error}</AlertDescription>
         </Alert>
       )}
 
@@ -219,7 +268,10 @@ export function StaffList({ businessId }: StaffListProps) {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700">
+                      <div
+                        className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-700"
+                        aria-label={`${member.name} avatar`}
+                      >
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -244,21 +296,47 @@ export function StaffList({ businessId }: StaffListProps) {
                           size="sm"
                           variant="outline"
                           onClick={() => handleRoleChange(member)}
+                          aria-label={`Change role for ${member.name}`}
                           className="flex items-center gap-2"
                         >
                           <Edit2 className="w-4 h-4" />
                           Change Role
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleRemove(member)}
-                          disabled={removeLoading === member.id}
-                          className="flex items-center gap-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          {removeLoading === member.id ? 'Removing...' : 'Remove'}
-                        </Button>
+                        <AlertDialog open={removeState.staffId === member.id}>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRemove(member)}
+                            disabled={removeState.loading}
+                            aria-label={`Remove ${member.name} from staff`}
+                            className="flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            {removeState.loading ? 'Removing...' : 'Remove'}
+                          </Button>
+                          <AlertDialogContent>
+                            <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to remove {member.name} from your business? This action cannot be undone.
+                            </AlertDialogDescription>
+                            <div className="flex gap-3">
+                              <AlertDialogCancel
+                                onClick={() =>
+                                  setRemoveState({
+                                    staffId: null,
+                                    loading: false,
+                                    error: null,
+                                  })
+                                }
+                              >
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction onClick={confirmRemove} disabled={removeState.loading}>
+                                {removeState.loading ? 'Removing...' : 'Remove'}
+                              </AlertDialogAction>
+                            </div>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </>
                     )}
                     {member.role === 'owner' && (
@@ -274,20 +352,20 @@ export function StaffList({ businessId }: StaffListProps) {
         </div>
       </ScrollArea>
 
-      {roleChangeDialog && selectedStaff && (
+      {roleChangeState.dialogOpen && roleChangeState.selectedStaff && (
         <Card className="p-6 space-y-4 border-blue-200 bg-blue-50">
           <div>
-            <h3 className="font-semibold mb-2">Change Role for {selectedStaff.name}</h3>
-            <p className="text-sm text-slate-600 mb-4">Current role: {selectedStaff.role}</p>
+            <h3 className="font-semibold mb-2">Change Role for {roleChangeState.selectedStaff.name}</h3>
+            <p className="text-sm text-slate-600 mb-4">Current role: {roleChangeState.selectedStaff.role}</p>
 
-            {roleChangeError && (
+            {roleChangeState.error && (
               <Alert className="mb-4 border-red-200 bg-red-50">
                 <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-700">{roleChangeError}</AlertDescription>
+                <AlertDescription className="text-red-700">{roleChangeState.error}</AlertDescription>
               </Alert>
             )}
 
-            <Select value={newRole} onValueChange={(v) => setNewRole(v as UserRole)}>
+            <Select value={roleChangeState.newRole} onValueChange={(v) => setRoleChangeState((prev) => ({ ...prev, newRole: v as UserRole }))}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -301,18 +379,18 @@ export function StaffList({ businessId }: StaffListProps) {
           <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={() => setRoleChangeDialog(false)}
-              disabled={roleChangeLoading}
+              onClick={() => setRoleChangeState({ dialogOpen: false, selectedStaff: null, newRole: 'cashier', loading: false, error: null })}
+              disabled={roleChangeState.loading}
               className="flex-1"
             >
               Cancel
             </Button>
             <Button
               onClick={handleRoleSubmit}
-              disabled={roleChangeLoading}
+              disabled={roleChangeState.loading}
               className="flex-1"
             >
-              {roleChangeLoading ? 'Updating...' : 'Update Role'}
+              {roleChangeState.loading ? 'Updating...' : 'Update Role'}
             </Button>
           </div>
         </Card>

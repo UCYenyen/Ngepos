@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle } from 'lucide-react';
+import { validateEmail } from '@/lib/staff-validation';
 import type { UserRole } from '@/types/business';
 
 interface InviteFormProps {
@@ -26,11 +27,6 @@ export function InviteForm({ businessId, onInvitationSent, open = false, onOpenC
   const [formState, setFormState] = useState<FormState>('form');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
-
-  const validateEmail = (value: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value);
-  };
 
   const handleSubmit = async () => {
     setError(null);
