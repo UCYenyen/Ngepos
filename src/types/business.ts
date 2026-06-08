@@ -1,6 +1,13 @@
 // src/types/business.ts
 export type BusinessType = 'retail' | 'fnb';
 export type UserRole = 'owner' | 'manager' | 'cashier';
+export type ReportChannel = 'email' | 'whatsapp';
+
+export interface ReportSettings {
+  report_enabled: boolean;
+  report_channel: ReportChannel;
+  report_recipient: string;
+}
 
 export interface Business {
   id: string;
