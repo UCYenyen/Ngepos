@@ -189,7 +189,7 @@ export function StaffList({ businessId }: StaffListProps) {
     }).format(date);
   };
 
-  let sorted = [...staff];
+  const sorted = [...staff];
   if (sortBy === 'name') {
     sorted.sort((a, b) => a.name.localeCompare(b.name));
   } else if (sortBy === 'role') {
