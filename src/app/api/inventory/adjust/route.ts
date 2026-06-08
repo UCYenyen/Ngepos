@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
         const { error: variantUpdateError } = await supabase
           .from('product_variants')
           .update({ stock_qty: newStock })
-          .eq('id', variantId);
+          .eq('id', variantId)
+          .eq('product_id', productId);
 
         if (variantUpdateError) throw variantUpdateError;
       } else {
