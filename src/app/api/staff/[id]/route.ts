@@ -2,11 +2,8 @@ import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { canManageStaff } from '@/lib/permissions';
-import type { UserRole } from '@/types/business';
-
-function validateRole(role: string): role is Exclude<UserRole, 'owner'> {
-  return role === 'manager' || role === 'cashier';
-}
+import { validateRole } from '@/lib/staff-validation';
+import type { StaffUpdateResponse } from '@/types/api';
 
 export async function PATCH(
   request: NextRequest,
@@ -83,10 +80,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    return NextResponse.json({
+    const response: StaffUpdateResponse = {
       success: true,
-      updated_at: new Date().toISOString(),
-    });
+      data: {
+        updated_at: new Date().toISOString(),
+      },
+    };
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error in PATCH /api/staff/[id]:', error);
     return NextResponse.json(

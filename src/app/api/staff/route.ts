@@ -2,20 +2,12 @@ import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { canManageStaff } from '@/lib/permissions';
-import type { UserRole } from '@/types/business';
+import { validateEmail, validateRole } from '@/lib/staff-validation';
+import type { StaffListResponse, StaffInvitationResponse } from '@/types/api';
 import { randomBytes } from 'crypto';
 
 function generateInvitationToken(): string {
   return randomBytes(32).toString('hex');
-}
-
-function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-function validateRole(role: string): role is Exclude<UserRole, 'owner'> {
-  return role === 'manager' || role === 'cashier';
 }
 
 export async function GET(request: NextRequest) {
@@ -58,10 +50,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    if (!members || members.length === 0) {
-      return NextResponse.json({ staff: [] });
-    }
-
     const userIds = members.map((m) => m.user_id);
     const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
 
@@ -86,7 +74,11 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-    return NextResponse.json({ staff });
+    const response: StaffListResponse = {
+      success: true,
+      data: { staff },
+    };
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error in GET /api/staff:', error);
     return NextResponse.json(
@@ -151,6 +143,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invitation already sent to this email' }, { status: 400 });
     }
 
+    const { data: { users }, error: searchError } = await supabase.auth.admin.listUsers();
+    if (searchError) {
+      console.error('Error searching for user:', searchError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    const invitedAuthUser = users.find((u) => u.email === email);
+    if (invitedAuthUser) {
+      const { data: existingMember } = await supabase
+        .from('business_members')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('user_id', invitedAuthUser.id)
+        .maybeSingle();
+
+      if (existingMember) {
+        return NextResponse.json(
+          { error: 'User is already a staff member of this business' },
+          { status: 400 }
+        );
+      }
+    }
+
     const token = generateInvitationToken();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
@@ -172,11 +187,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    return NextResponse.json({
+    // TODO: Send invitation email with token to ${email}
+    // This requires setting up Resend or similar email service
+    // For now, return the token to API caller (they can test with it)
+    // In production, would do:
+    // await sendInvitationEmail(email, token, businessId);
+
+    const response: StaffInvitationResponse = {
       success: true,
-      invitation_id: invitation.id,
-      invitation_token: token,
-    });
+      data: {
+        invitation_id: invitation.id,
+        invitation_token: token,
+      },
+    };
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error in POST /api/staff:', error);
     return NextResponse.json(
