@@ -34,19 +34,6 @@
   --chart-4: #b3e01c;
   --chart-5: #03b2cb;
 
-  --accent-orange: var(--accent);
-  --accent-orange-hover: var(--accent-hover);
-  --accent-orange-active: var(--accent-active);
-  --semantic-error: var(--error);
-  --semantic-error-light: var(--error-light);
-  --semantic-success: var(--success);
-  --semantic-success-light: var(--success-light);
-  --report-blue: var(--chart-1);
-  --report-green: var(--chart-2);
-  --report-pink: var(--chart-3);
-  --report-lime: var(--chart-4);
-  --report-cyan: var(--chart-5);
-
   --inverse-canvas: #000000;
   --inverse-surface-1: #313130;
   --inverse-ink: #ffffff;
@@ -140,19 +127,6 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --color-accent-orange: var(--accent);
-  --color-accent-orange-hover: var(--accent-hover);
-  --color-accent-orange-active: var(--accent-active);
-  --color-semantic-error: var(--error);
-  --color-semantic-error-light: var(--error-light);
-  --color-semantic-success: var(--success);
-  --color-semantic-success-light: var(--success-light);
-  --color-report-blue: var(--chart-1);
-  --color-report-green: var(--chart-2);
-  --color-report-pink: var(--chart-3);
-  --color-report-lime: var(--chart-4);
-  --color-report-cyan: var(--chart-5);
-
   --radius-btn: 8px;
   --radius-card: 12px;
   --radius-media: 16px;
@@ -222,11 +196,11 @@
 
   input, textarea, select {
     @apply bg-surface-1 text-ink border border-hairline rounded-md;
-    @apply focus:outline-none focus:ring-2 focus:ring-accent-orange focus:border-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent;
   }
 
   a {
-    @apply text-accent-orange hover:text-accent-orange-hover transition-colors;
+    @apply text-accent hover:text-accent-hover transition-colors;
   }
 }
 
@@ -240,7 +214,7 @@
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center px-6 py-2.5 bg-accent-orange text-surface-1 font-medium rounded-md hover:bg-accent-orange-hover active:bg-accent-orange-active transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center px-6 py-2.5 bg-accent text-surface-1 font-medium rounded-md hover:bg-accent-hover active:bg-accent-active transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-tertiary {
@@ -260,7 +234,7 @@
   }
 
   .input-base {
-    @apply w-full px-4 py-2.5 bg-surface-1 text-ink border border-hairline rounded-md placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent-orange focus:border-transparent transition-colors duration-200;
+    @apply w-full px-4 py-2.5 bg-surface-1 text-ink border border-hairline rounded-md placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-colors duration-200;
   }
 
   .badge {
@@ -268,15 +242,15 @@
   }
 
   .badge-accent {
-    @apply inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-accent-orange text-surface-1;
+    @apply inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-accent text-surface-1;
   }
 
   .badge-error {
-    @apply inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-semantic-error-light text-semantic-error;
+    @apply inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-error-light text-error;
   }
 
   .badge-success {
-    @apply inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-semantic-success-light text-semantic-success;
+    @apply inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-success-light text-success;
   }
 
   .divider {

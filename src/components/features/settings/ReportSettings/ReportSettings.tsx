@@ -103,9 +103,9 @@ export function ReportSettings({ businessId, planHasAutomatedReports }: ReportSe
           </p>
         </div>
 
-        {error ? <p className="text-sm text-semantic-error">{error}</p> : null}
+        {error ? <p className="text-sm text-error">{error}</p> : null}
         {statusMessage ? (
-          <p className="text-sm text-semantic-success">{statusMessage}</p>
+          <p className="text-sm text-success">{statusMessage}</p>
         ) : null}
 
         <div className="flex items-center justify-between gap-4">

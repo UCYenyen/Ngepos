@@ -201,7 +201,7 @@ export function ExportReports({ businessId, businessName }: ExportReportsProps) 
           </Button>
         </div>
 
-        {error ? <p className="text-sm text-semantic-error">{error}</p> : null}
+        {error ? <p className="text-sm text-error">{error}</p> : null}
       </CardContent>
     </Card>
   );

@@ -191,7 +191,7 @@ export function AnalyticsClient({ businessId }: AnalyticsClientProps) {
           </div>
         </div>
       ) : error ? (
-        <p className="text-sm text-semantic-error">{error}</p>
+        <p className="text-sm text-error">{error}</p>
       ) : metrics ? (
         <div className="flex flex-col gap-6">
           <MetricCards summary={metrics.summary} />

@@ -344,13 +344,17 @@ The design system is based on an Intercom-inspired minimalist aesthetic:
 
 **Colors:**
 
-- **Canvas:** Soft cream-white `#f5f1ec` — default page background
-- **Surface:** Pure white `#ffffff` — floating cards, input fields
-- **Primary Ink:** Charcoal `#111111` — headlines, body text, primary buttons
-- **Muted Ink:** Medium gray `#626260` — secondary text, disabled states
-- **Accent:** Brand orange `#ff5600` — CTAs, highlights
-- **Error:** Red `#c41c1c` — validation errors, destructive states
-- **Success:** Green `#0bdf50` — success states, confirmations
+- **Canvas:** Soft cream-white `#f5f1ec` (`bg-canvas`) — default page background
+- **Surface:** Pure white `#ffffff` (`bg-surface-1`) — floating cards, input fields
+- **Primary Ink:** Charcoal `#111111` (`text-ink`) — headlines, body text, primary buttons
+- **Muted Ink:** Medium gray `#626260` (`text-ink-muted`) — secondary text, disabled states
+- **Accent:** Brand orange `#ff5600` (`bg-accent` / `text-accent`, hover `accent-hover`, active `accent-active`) — CTAs, highlights
+- **Error:** Red `#c41c1c` (`text-error` / `bg-error-light`) — validation errors, destructive states
+- **Success:** Green `#119a48` (`text-success` / `bg-success-light`) — success states, confirmations
+- **Hairline:** `#d3cec6` (`border-hairline`) — default 1px borders; depth comes from borders, never shadows
+- **Charts:** data-viz palette `chart-1`…`chart-5` (`fill-[var(--color-chart-1)]` or the shadcn chart config)
+
+Token naming is the canonical design-handoff set (`accent`, `error`, `success`, `chart-N`). Dark-mode values are defined under `.dark` for every token.
 
 **Typography:**
 
@@ -377,7 +381,7 @@ The design system is based on an Intercom-inspired minimalist aesthetic:
 
 ### Design Tokens
 
-All design tokens are defined in `src/styles/globals.css` as CSS custom properties and integrate with Tailwind configuration.
+All design tokens are defined in `src/app/globals.css` as CSS custom properties (raw tokens under `:root`/`.dark`, exposed to Tailwind v4 utilities via `@theme inline`). Use semantic utility classes (`text-ink`, `bg-surface-1`, `text-accent`, `border-hairline`) — never hardcoded hex values.
 
 ## Environment Variables
 
