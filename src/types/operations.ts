@@ -1,52 +1,84 @@
+export type StockMovementType = 'sale' | 'restock' | 'adjustment' | 'damage';
+
 export interface StockMovement {
   id: string;
   business_id: string;
   product_id: string;
   variant_id: string | null;
-  type: 'sale' | 'restock' | 'adjustment' | 'damage';
+  type: StockMovementType;
   quantity_change: number;
-  note?: string;
+  note: string | null;
   created_by: string;
-  created_at: string;
+  created_at: Date;
 }
 
 export interface Supplier {
   id: string;
   business_id: string;
   name: string;
-  contact_phone?: string;
-  contact_email?: string;
-  address?: string;
-  notes?: string;
-  created_at: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at: Date;
 }
 
 export interface CreateStockMovementInput {
   product_id: string;
-  variant_id?: string;
-  type: StockMovement['type'];
+  variant_id?: string | null;
+  type: StockMovementType;
   quantity_change: number;
   note?: string;
 }
 
-/**
- * IMPORTANT: variant_id validation rules
- *
- * When creating or updating stock_movements, the application MUST enforce:
- *
- * 1. If the product has variants (product.has_variants = true):
- *    - variant_id MUST NOT be null
- *    - variant_id MUST reference a valid product_variant for this product
- *
- * 2. If the product does NOT have variants (product.has_variants = false):
- *    - variant_id MUST be null
- *
- * This validation cannot be enforced at the database level (no cross-table
- * business logic constraints), so it's the API's responsibility. Failing to
- * validate will result in incomplete audit trails and incorrect stock
- * tracking.
- */
-export type StockMovementValidation = {
-  hasVariants: boolean;
-  variantId?: string;
+export interface CreateSupplierInput {
+  name: string;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+}
+
+export interface StaffPermissions {
+  canViewAnalytics: boolean;
+  canManageProducts: boolean;
+  canManageInventory: boolean;
+  canProcessTransactions: boolean;
+  canApplyDiscounts: boolean;
+  canManageStaff: boolean;
+  canViewReports: boolean;
+  canAccessBusinessSettings: boolean;
+}
+
+export const RolePermissions: Record<'owner' | 'manager' | 'cashier', StaffPermissions> = {
+  owner: {
+    canViewAnalytics: true,
+    canManageProducts: true,
+    canManageInventory: true,
+    canProcessTransactions: true,
+    canApplyDiscounts: true,
+    canManageStaff: true,
+    canViewReports: true,
+    canAccessBusinessSettings: true,
+  },
+  manager: {
+    canViewAnalytics: true,
+    canManageProducts: true,
+    canManageInventory: true,
+    canProcessTransactions: true,
+    canApplyDiscounts: true,
+    canManageStaff: false,
+    canViewReports: true,
+    canAccessBusinessSettings: false,
+  },
+  cashier: {
+    canViewAnalytics: false,
+    canManageProducts: false,
+    canManageInventory: false,
+    canProcessTransactions: true,
+    canApplyDiscounts: false,
+    canManageStaff: false,
+    canViewReports: false,
+    canAccessBusinessSettings: false,
+  },
 };
