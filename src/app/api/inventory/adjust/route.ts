@@ -1,0 +1,95 @@
+import { createServerClient } from '@/lib/supabase';
+import { canManageInventory } from '@/lib/permissions';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+
+interface StockAdjustmentRequest {
+  businessId: string;
+  productId: string;
+  variantId?: string;
+  type: 'restock' | 'adjustment' | 'damage';
+  quantity_change: number;
+  note?: string;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(cookieStore);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body: StockAdjustmentRequest = await request.json();
+    const { businessId, productId, variantId, type, quantity_change, note } = body;
+
+    // Validate required fields
+    if (!businessId || !productId || !type || quantity_change === undefined) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Validate type
+    if (!['restock', 'adjustment', 'damage'].includes(type)) {
+      return NextResponse.json({ error: 'Invalid adjustment type' }, { status: 400 });
+    }
+
+    // Verify user can access business
+    const { data: member } = await supabase
+      .from('business_members')
+      .select('role')
+      .eq('business_id', businessId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!member) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Check permission to manage inventory
+    if (!canManageInventory(member.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    // Verify product exists and belongs to business
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, has_variants, track_stock')
+      .eq('id', productId)
+      .eq('business_id', businessId)
+      .single();
+
+    if (productError || !product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    // Create stock movement record
+    const { data: movement, error: movementError } = await supabase
+      .from('stock_movements')
+      .insert({
+        business_id: businessId,
+        product_id: productId,
+        variant_id: variantId || null,
+        type,
+        quantity_change,
+        note: note || null,
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (movementError) throw movementError;
+
+    return NextResponse.json({
+      success: true,
+      movement_id: movement.id,
+    });
+  } catch (error) {
+    console.error('Error adjusting inventory:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
