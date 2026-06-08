@@ -31,7 +31,13 @@ export function RevenueChart({ data }: RevenueChartProps) {
               axisLine={false}
               tickFormatter={(value) => formatCurrency(Number(value))}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value) => formatCurrency(Number(value))}
+                />
+              }
+            />
             <Area
               type="monotone"
               dataKey="revenue"

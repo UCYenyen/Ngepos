@@ -43,7 +43,13 @@ export function PaymentBreakdownChart({ data }: PaymentBreakdownChartProps) {
               axisLine={false}
               tickFormatter={(value) => formatCurrency(Number(value))}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value) => formatCurrency(Number(value))}
+                />
+              }
+            />
             <Bar dataKey="revenue" fill="var(--color-chart-3)" radius={4} />
           </BarChart>
         </ChartContainer>

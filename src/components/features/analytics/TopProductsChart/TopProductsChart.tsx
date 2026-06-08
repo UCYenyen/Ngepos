@@ -37,7 +37,13 @@ export function TopProductsChart({ data }: TopProductsChartProps) {
               tickLine={false}
               axisLine={false}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value) => formatCurrency(Number(value))}
+                />
+              }
+            />
             <Bar dataKey="revenue" fill="var(--color-chart-2)" radius={4} />
           </BarChart>
         </ChartContainer>

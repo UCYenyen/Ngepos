@@ -10,6 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { formatCurrency } from "@/lib/format";
 import type { CategorySalesChartProps } from "./types";
 
 const sliceColors = [
@@ -33,7 +34,14 @@ export function CategorySalesChart({ data }: CategorySalesChartProps) {
       ) : (
         <ChartContainer config={chartConfig}>
           <PieChart>
-            <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  nameKey="name"
+                  formatter={(value) => formatCurrency(Number(value))}
+                />
+              }
+            />
             <Pie
               data={data}
               dataKey="revenue"
