@@ -135,7 +135,8 @@ CREATE POLICY invitations_insert ON invitations
   );
 
 CREATE POLICY invitations_accept ON invitations
-  FOR UPDATE USING (true) WITH CHECK (true);
+  FOR UPDATE USING (expires_at > NOW())
+  WITH CHECK (expires_at > NOW());
 
 CREATE INDEX idx_businesses_owner_id ON businesses(owner_id);
 CREATE INDEX idx_business_members_business_id ON business_members(business_id);
