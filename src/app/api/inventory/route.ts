@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
         category_id,
         track_stock,
         has_variants,
+        stock_qty,
+        low_stock_threshold,
         created_at,
         categories(name),
         product_variants(id, name, stock_qty)
@@ -83,6 +85,8 @@ export async function GET(request: NextRequest) {
           (sum: number, v: any) => sum + (v.stock_qty || 0),
           0
         );
+      } else {
+        currentStock = product.stock_qty || 0;
       }
 
       return {
@@ -93,7 +97,7 @@ export async function GET(request: NextRequest) {
         category_name: product.categories?.name || null,
         price: product.price,
         current_stock: currentStock,
-        low_stock_threshold: null,
+        low_stock_threshold: product.low_stock_threshold,
         track_stock: product.track_stock,
         has_variants: product.has_variants,
         variants: product.product_variants || [],

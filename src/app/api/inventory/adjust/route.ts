@@ -81,6 +81,45 @@ export async function POST(request: NextRequest) {
 
     if (movementError) throw movementError;
 
+    // Update product stock if track_stock is enabled
+    if (product.track_stock) {
+      if (variantId) {
+        // Fetch current stock for variant
+        const { data: variant, error: variantFetchError } = await supabase
+          .from('product_variants')
+          .select('stock_qty')
+          .eq('id', variantId)
+          .single();
+
+        if (variantFetchError) throw variantFetchError;
+
+        const newStock = (variant?.stock_qty || 0) + quantity_change;
+        const { error: variantUpdateError } = await supabase
+          .from('product_variants')
+          .update({ stock_qty: newStock })
+          .eq('id', variantId);
+
+        if (variantUpdateError) throw variantUpdateError;
+      } else {
+        // Fetch current stock for product
+        const { data: prod, error: prodFetchError } = await supabase
+          .from('products')
+          .select('stock_qty')
+          .eq('id', productId)
+          .single();
+
+        if (prodFetchError) throw prodFetchError;
+
+        const newStock = (prod?.stock_qty || 0) + quantity_change;
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ stock_qty: newStock })
+          .eq('id', productId);
+
+        if (productUpdateError) throw productUpdateError;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       movement_id: movement.id,

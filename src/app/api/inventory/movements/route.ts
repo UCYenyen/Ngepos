@@ -64,13 +64,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid limit or offset' }, { status: 400 });
     }
 
-    // For cashiers, restrict to their own movements
-    const viewRestriction =
-      member.role === 'cashier'
-        ? {
-            created_by: user.id,
-          }
-        : {};
+    // Check if user can view all analytics or restricted to own movements
+    const canViewAll = canViewAnalytics(member.role);
+    const viewingOwnOnly = !canViewAll && member.role === 'cashier';
+
+    // If cashier is trying to view someone else's movements, deny access
+    if (viewingOwnOnly && createdBy && createdBy !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Determine which user's movements to filter by
+    const createdByFilter = viewingOwnOnly ? user.id : createdBy;
 
     // Build query with filters
     let query = supabase
@@ -98,13 +102,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('product_id', productId);
     }
 
-    if (createdBy) {
-      query = query.eq('created_by', createdBy);
-    }
-
-    // Apply view restriction for cashiers
-    if (viewRestriction.created_by) {
-      query = query.eq('created_by', viewRestriction.created_by);
+    if (createdByFilter) {
+      query = query.eq('created_by', createdByFilter);
     }
 
     // Fetch with pagination
