@@ -1,31 +1,13 @@
 import { createServerClient } from '@/lib/supabase';
 import { canManageInventory } from '@/lib/permissions';
-import { ProductRow, ProductVariantRow, CategoryRow } from '@/types/operations';
+import {
+  INVENTORY_PRODUCT_SELECT,
+  mapToInventoryProduct,
+  type ProductWithRelations,
+} from '@/lib/inventory-query';
+import type { InventoryProduct } from '@/types/inventory';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-
-interface InventoryResponse {
-  id: string;
-  name: string;
-  sku: string | null;
-  category_id: string | null;
-  category_name: string | null;
-  price: number;
-  current_stock: number;
-  low_stock_threshold: number | null;
-  track_stock: boolean;
-  has_variants: boolean;
-  variants: Array<{
-    id: string;
-    name: string;
-    stock_qty: number;
-  }>;
-}
-
-interface ProductWithRelations extends ProductRow {
-  categories: CategoryRow | null;
-  product_variants: ProductVariantRow[];
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,22 +44,7 @@ export async function GET(request: NextRequest) {
     // Fetch products with categories and variants
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select(
-        `
-        id,
-        name,
-        sku,
-        price,
-        category_id,
-        track_stock,
-        has_variants,
-        stock_qty,
-        low_stock_threshold,
-        created_at,
-        categories(name),
-        product_variants(id, name, stock_qty)
-      `
-      )
+      .select(INVENTORY_PRODUCT_SELECT)
       .eq('business_id', businessId)
       .order('created_at', { ascending: false });
 
@@ -85,32 +52,7 @@ export async function GET(request: NextRequest) {
 
     const typedProducts = products as unknown as ProductWithRelations[] | null;
 
-    const inventory: InventoryResponse[] = (typedProducts || []).map((product) => {
-      let currentStock = 0;
-
-      if (product.has_variants && product.product_variants && product.product_variants.length > 0) {
-        currentStock = product.product_variants.reduce(
-          (sum: number, v: ProductVariantRow) => sum + (v.stock_qty || 0),
-          0
-        );
-      } else {
-        currentStock = product.stock_qty || 0;
-      }
-
-      return {
-        id: product.id,
-        name: product.name,
-        sku: product.sku || null,
-        category_id: product.category_id || null,
-        category_name: product.categories?.name || null,
-        price: product.price,
-        current_stock: currentStock,
-        low_stock_threshold: product.low_stock_threshold,
-        track_stock: product.track_stock,
-        has_variants: product.has_variants,
-        variants: product.product_variants || [],
-      };
-    });
+    const inventory: InventoryProduct[] = (typedProducts || []).map(mapToInventoryProduct);
 
     return NextResponse.json(inventory);
   } catch (error) {
