@@ -4,139 +4,113 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ngepos** is a Next.js 16 full-stack application with Supabase backend integration, styled with Tailwind CSS and shadcn/ui components. The project uses pnpm for package management exclusively.
+**Ngepos** is a multi-tenant SaaS POS (Point of Sale) system targeting F&B and retail businesses in Indonesia. A single user can own multiple businesses. Features are gated by subscription plan (Starter / Pro / Enterprise).
+
+Full system design spec: `docs/superpowers/specs/2026-06-08-pos-system-design.md`
 
 ## Tech Stack
 
 - **Framework:** Next.js 16.2.7 (App Router, React 19)
 - **Language:** TypeScript 5
-- **Styling:** Tailwind CSS 4 + TailwindCSS PostCSS
+- **Styling:** Tailwind CSS 4 + PostCSS
 - **UI Components:** shadcn/ui (Base Nova style) + Lucide React icons
-- **Database/Backend:** Supabase (@supabase/supabase-js)
+- **Charts:** shadcn/ui charts (Recharts) with animations
+- **Database/Backend:** Supabase (Postgres + RLS for multi-tenancy)
+- **Auth:** Supabase Auth (email/password + Google OAuth)
 - **Testing:** Vitest 4 + React Testing Library
 - **Linting:** ESLint 9
-- **Build Tool:** Vite 8 (for testing)
-- **React Compiler:** Enabled (babel-plugin-react-compiler)
+- **React Compiler:** Enabled — do not manually use `memo()` or `useMemo()`
 
 ## Commands
 
 **Only use `pnpm` — never use `npm`, `yarn`, or `bun`.**
 
-### Development
-
-```bash
+```shell
 pnpm dev              # Start dev server on http://localhost:3000
 pnpm build            # Build for production
 pnpm start            # Start production server
-```
-
-### Testing
-
-```bash
+pnpm lint             # Run ESLint
 pnpm test             # Run all tests in watch mode
-pnpm test:ui          # Run tests with interactive UI dashboard
-pnpm test:coverage    # Run tests with coverage report
+pnpm test:ui          # Interactive test UI dashboard
+pnpm test:coverage    # Coverage report
+pnpm test <filename>  # Run single test file
 ```
 
-Individual test files: `pnpm test <filename>` (e.g., `pnpm test button.test.tsx`)
+Add shadcn/ui components: `pnpm dlx shadcn-ui@latest add <component-name>`
 
-### Linting & Code Quality
+## Architecture
 
-```bash
-pnpm lint             # Run ESLint on project
+### Multi-tenancy Model
+
+The core data hierarchy is: `user → subscription → businesses → business_members`. Every business-scoped table has a `business_id` column. Supabase RLS policies enforce tenant isolation using `auth.uid()` joined through `business_members`. Never fetch cross-business data — always scope queries by `business_id`.
+
+### Plan Enforcement
+
+Plan limits (max businesses, max products, max staff, feature flags) are defined as a static config in `src/lib/plans.ts` (to be created). Every action that touches a limited feature must check the plan config before proceeding and show an upgrade modal if the limit is exceeded. Never enforce limits only in the UI — check server-side too.
+
+### Route Structure (App Router)
+
+```
+src/app/
+├── (auth)/              # Login, signup, onboarding — no sidebar
+├── (dashboard)/
+│   ├── [businessId]/
+│   │   ├── pos/         # POS transaction screen
+│   │   ├── products/    # Product & category management
+│   │   ├── inventory/   # Stock management (Pro/Enterprise)
+│   │   ├── tables/      # Table management (F&B, Pro/Enterprise)
+│   │   ├── staff/       # Staff roles & invitations
+│   │   ├── analytics/   # Sales dashboard (Pro/Enterprise)
+│   │   ├── reports/     # Export & automated reports
+│   │   └── settings/    # Business settings, QRIS upload
+│   └── businesses/      # Business switcher / create new
+├── billing/             # Subscription management
+└── api/                 # Route handlers (webhooks, reports)
 ```
 
-## Project Structure
+### Supabase Patterns
 
-```text
-src/
-├── app/
-│   ├── layout.tsx       # Root layout with font setup
-│   ├── page.tsx         # Home page
-│   └── globals.css      # Global styles
-├── components/
-│   └── ui/              # shadcn/ui components
-├── lib/
-│   ├── supabase.ts      # Supabase client singleton
-│   └── utils.ts         # Utility functions (cn() for class merging)
-└── hooks/               # (create as needed)
+- Client singleton: `src/lib/supabase.ts` — use for client components
+- For Server Components and Route Handlers, create a server-side client using `createServerClient` from `@supabase/ssr`
+- RLS is the security boundary — always write migrations with RLS policies alongside table creation
+- Database migrations go in `supabase/migrations/`
+
+### Payment Integrations
+
+- **Subscription billing:** Midtrans or Xendit (merchant's choice); also manual bank transfer
+- **POS transactions:** Cash (manual), QRIS (static image upload per business), or gateway (Midtrans/Xendit webhook auto-confirm — Pro/Enterprise only)
+- Webhook handlers live in `src/app/api/webhooks/`
+
+### Automated Reports
+
+- Triggered by Supabase `pg_cron` on the 1st of each month
+- Edge Function generates report and dispatches via **Resend** (email) or **Fonnte API** (WhatsApp)
+- Edge Functions live in `supabase/functions/`
+
+## Key Patterns
+
+- **Path alias:** `@/` resolves to `src/`. Always use `@/` for internal imports.
+- **Class merging:** Use `cn()` from `src/lib/utils.ts` for all Tailwind class merges.
+- **Server vs Client Components:** Default to Server Components. Add `"use client"` only when needed (interactivity, hooks, browser APIs).
+- **Tests:** Write alongside code (`Component.test.tsx` next to `Component.tsx`). Vitest runs in happy-dom.
+
+## Environment Variables
+
+```shell
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=      # Server-only, never expose to browser
+MIDTRANS_SERVER_KEY=            # Server-only
+XENDIT_SECRET_KEY=              # Server-only
+RESEND_API_KEY=                 # Server-only
+FONNTE_API_KEY=                 # Server-only
 ```
 
-## Architecture & Key Patterns
-
-### Next.js App Router
-
-- All routes use the App Router (src/app directory)
-- Server Components by default; use `"use client"` at the top of files for Client Components
-- Read `node_modules/next/dist/docs/` for documentation specific to this Next.js version—APIs may differ from your training data
-
-### Supabase Integration
-
-- Client initialized in `src/lib/supabase.ts` as a singleton
-- Environment variables required:
-  - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Public API key
-- These are public (NEXT_PUBLIC prefix) and safe to expose in the browser
-- See `.env.example` for template
-
-### Styling
-
-- **Tailwind CSS 4** with PostCSS plugin
-- **shadcn/ui** components in `src/components/ui/` (managed via CLI)
-- Use `cn()` utility from `src/lib/utils.ts` to merge Tailwind class names safely
-- Theme configured in `components.json`: Base Nova style, neutral base color, CSS variables
-
-### Component Structure
-
-- Path alias `@/` resolves to `src/`
-- shadcn/ui component aliases configured:
-  - `@/components` → components directory
-  - `@/ui` → components/ui
-  - `@/lib` → lib utilities
-  - `@/hooks` → custom React hooks
-
-### Testing
-
-- Vitest configured in `vitest.config.ts` (happy-dom environment for DOM testing)
-- Test setup file: `vitest.setup.ts` (loads @testing-library/jest-dom)
-- Write tests alongside code (e.g., `Button.test.tsx` next to `Button.tsx`)
-- Use React Testing Library for component tests
-
-### React Compiler
-
-- Enabled in `next.config.ts` (`reactCompiler: true`)
-- Automatically optimizes component memoization; don't manually use `memo()` or `useMemo()` unless needed
-
-## Adding Components
-
-Add shadcn/ui components with:
-
-```bash
-pnpm dlx shadcn-ui@latest add <component-name>
-```
-
-Example: `pnpm dlx shadcn-ui@latest add button` (already included)
-
-Components are copied into `src/components/ui/` and fully owned by your codebase—safe to customize.
+Create `.env.local` from `.env.example`. Restart dev server after changes. Variables without `NEXT_PUBLIC_` prefix are server-only.
 
 ## Important Notes
 
-1. **This is NOT stock Next.js:** Version 16 has breaking changes. Always check `node_modules/next/dist/docs/` for API-specific behavior before assuming training data applies.
-
-2. **Package Manager:** Strictly pnpm only. No npm, yarn, or bun. All scripts and CI/CD assume pnpm.
-
-3. **Environment Variables:**
-   - Create `.env.local` (gitignored) from `.env.example`
-   - `NEXT_PUBLIC_*` variables are exposed to the browser (never put secrets here)
-   - Restart dev server after changing env vars
-
-4. **TypeScript Paths:** The `@/*` alias is configured in `tsconfig.json` and used throughout. Always use `@/` for imports from `src/`.
-
-5. **Tailwind + shadcn/ui:** Use Tailwind classes directly on components. shadcn/ui components are unstyled by default and Tailwind-friendly. The `cn()` helper safely merges class conflicts.
-
-6. **Test Coverage:** Tests run in happy-dom (lightweight DOM environment). For browser-specific features, tests may need adjustment.
-
-7. **Git Configuration:**
-   - Author: Ngepos
-   - Email: bfernando@student.ciputra.ac.id
-   - Remote: [https://github.com/UCYenyen/Ngepos.git](https://github.com/UCYenyen/Ngepos.git)
+1. **Next.js 16 has breaking changes** from earlier versions. Check `node_modules/next/dist/docs/` before assuming training data applies.
+2. **RLS is mandatory** on every new table. No table should be readable without a policy.
+3. **Business type matters:** `retail` and `fnb` businesses have different features. F&B gets table management; both get core POS. Always check `business.type` before rendering F&B-specific UI.
+4. **Git:** Author: Ngepos / bfernando@student.ciputra.ac.id / Remote: <https://github.com/UCYenyen/Ngepos.git>
