@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { requireBusinessAccess, getCurrentSubscription } from '@/lib/auth';
-import { getPlanConfig } from '@/lib/plans';
+import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
 import { canViewAnalytics } from '@/lib/permissions';
 import { PageShell } from '@/components/common/PageShell/PageShell';
 import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
@@ -28,9 +27,8 @@ export default async function AnalyticsPage({ params }: AnalyticsPageProps) {
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
 
-  const subscription = await getCurrentSubscription();
-  const hasAnalytics =
-    subscription !== null && getPlanConfig(subscription.plan).features.analytics;
+  const features = await getBusinessPlanFeatures(businessId);
+  const hasAnalytics = features.analytics;
 
   return (
     <PageShell title="Analytics" subtitle={typedBusiness.name}>

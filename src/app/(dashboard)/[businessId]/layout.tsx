@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { requireBusinessAccess, getCurrentSubscription } from '@/lib/auth';
-import { getPlanConfig } from '@/lib/plans';
+import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
 import { getNavItems } from '@/lib/navigation';
 import { Sidebar } from '@/components/layout/Sidebar/Sidebar';
 import type { Business } from '@/types/business';
@@ -19,10 +18,7 @@ export default async function BusinessLayout({
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
 
-  const subscription = await getCurrentSubscription();
-  const features = subscription
-    ? getPlanConfig(subscription.plan).features
-    : getPlanConfig('starter').features;
+  const features = await getBusinessPlanFeatures(businessId);
 
   const items = getNavItems({
     businessId,

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { requireBusinessAccess, getCurrentSubscription } from '@/lib/auth';
-import { getPlanConfig } from '@/lib/plans';
+import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
 import { canAccessBusinessSettings } from '@/lib/permissions';
 import { PageShell } from '@/components/common/PageShell/PageShell';
 import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
@@ -39,9 +38,8 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     );
   }
 
-  const subscription = await getCurrentSubscription();
-  const planHasAutomatedReports =
-    subscription !== null && getPlanConfig(subscription.plan).features.automatedReports;
+  const features = await getBusinessPlanFeatures(businessId);
+  const planHasAutomatedReports = features.automatedReports;
 
   return (
     <PageShell title="Settings" subtitle={typedBusiness.name}>

@@ -1,7 +1,9 @@
 // src/lib/auth.ts
-import { createServerClient } from './supabase';
+import { cache } from 'react';
+import { createServerClient, createAdminClient } from './supabase';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getPlanConfig, type PlanConfig, type PlanName } from '@/lib/plans';
 import type { Subscription } from '@/types/auth';
 
 export async function getCurrentUser() {
@@ -30,6 +32,34 @@ export async function getCurrentSubscription(): Promise<Subscription | null> {
 
   return (subscription as Subscription) || null;
 }
+
+export const getBusinessPlanFeatures = cache(
+  async (businessId: string): Promise<PlanConfig['features']> => {
+    const restrictive = getPlanConfig('starter').features;
+    try {
+      const admin = createAdminClient();
+
+      const { data: business } = await admin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', businessId)
+        .maybeSingle<{ owner_id: string }>();
+      if (!business) return restrictive;
+
+      const { data: subscription } = await admin
+        .from('subscriptions')
+        .select('plan, status')
+        .eq('user_id', business.owner_id)
+        .maybeSingle<{ plan: PlanName; status: string }>();
+
+      if (!subscription || subscription.status !== 'active') return restrictive;
+      return getPlanConfig(subscription.plan).features;
+    } catch (error) {
+      console.error('Error resolving business plan features:', error);
+      return restrictive;
+    }
+  }
+);
 
 export async function getUserBusinesses() {
   const user = await getCurrentUser();

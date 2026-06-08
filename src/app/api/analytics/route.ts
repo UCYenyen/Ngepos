@@ -1,7 +1,6 @@
 import { createServerClient, createAdminClient } from '@/lib/supabase';
 import { canViewAnalytics } from '@/lib/permissions';
-import { getCurrentSubscription } from '@/lib/auth';
-import { getPlanConfig } from '@/lib/plans';
+import { getBusinessPlanFeatures } from '@/lib/auth';
 import {
   computeDashboardMetrics,
   type AnalyticsTransactionRow,
@@ -65,8 +64,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const subscription = await getCurrentSubscription();
-    if (!subscription || !getPlanConfig(subscription.plan).features.analytics) {
+    const features = await getBusinessPlanFeatures(businessId);
+    if (!features.analytics) {
       return NextResponse.json({ error: 'Analytics requires the Pro plan' }, { status: 403 });
     }
 
