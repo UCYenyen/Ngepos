@@ -6,24 +6,32 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
-  const supabase = createServerClient(request.cookies);
+  try {
+    const supabase = createServerClient(request.cookies);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user && !request.nextUrl.pathname.startsWith('/')) {
+    if (!user && !request.nextUrl.pathname.startsWith('/')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    if (
+      user &&
+      (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+  } catch (error) {
+    console.error('Middleware auth error:', error);
+    // On auth error, redirect to login to force re-authentication
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    return NextResponse.redirect(url);
-  }
-
-  if (
-    user &&
-    (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
     return NextResponse.redirect(url);
   }
 
