@@ -21,6 +21,22 @@ export function canViewAnalytics(role: UserRole): boolean {
   return RolePermissions[role].canViewAnalytics;
 }
 
+export function canManageProducts(role: UserRole): boolean {
+  return RolePermissions[role].canManageProducts;
+}
+
+export function canProcessTransactions(role: UserRole): boolean {
+  return RolePermissions[role].canProcessTransactions;
+}
+
+export function canViewReports(role: UserRole): boolean {
+  return RolePermissions[role].canViewReports;
+}
+
+export function canAccessBusinessSettings(role: UserRole): boolean {
+  return RolePermissions[role].canAccessBusinessSettings;
+}
+
 export function hasPermission(
   role: UserRole,
   permission: keyof StaffPermissions

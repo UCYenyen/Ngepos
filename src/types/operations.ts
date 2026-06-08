@@ -1,3 +1,5 @@
+import type { UserRole } from './business';
+
 export type StockMovementType = 'sale' | 'restock' | 'adjustment' | 'damage';
 
 export interface StockMovement {
@@ -9,7 +11,7 @@ export interface StockMovement {
   quantity_change: number;
   note: string | null;
   created_by: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface Supplier {
@@ -20,23 +22,23 @@ export interface Supplier {
   contact_email: string | null;
   address: string | null;
   notes: string | null;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface CreateStockMovementInput {
   product_id: string;
-  variant_id?: string | null;
+  variant_id: string | null;
   type: StockMovementType;
   quantity_change: number;
-  note?: string;
+  note: string | null;
 }
 
 export interface CreateSupplierInput {
   name: string;
-  contact_phone?: string | null;
-  contact_email?: string | null;
-  address?: string | null;
-  notes?: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  notes: string | null;
 }
 
 export interface StaffPermissions {
@@ -50,7 +52,7 @@ export interface StaffPermissions {
   canAccessBusinessSettings: boolean;
 }
 
-export const RolePermissions: Record<'owner' | 'manager' | 'cashier', StaffPermissions> = {
+export const RolePermissions: Record<UserRole, StaffPermissions> = {
   owner: {
     canViewAnalytics: true,
     canManageProducts: true,
