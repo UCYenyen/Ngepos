@@ -45,6 +45,11 @@ describe('transactionsToCsv', () => {
     expect(dataLine).toContain('"Jo""hn"');
   });
 
+  it('wraps a cashier_name containing a newline in double quotes', () => {
+    const csv = transactionsToCsv([makeRow({ cashier_name: 'Line1\nLine2' })]);
+    expect(csv).toContain('"Line1\nLine2"');
+  });
+
   it('returns exactly the header line for empty rows with no trailing newline', () => {
     const csv = transactionsToCsv([]);
     expect(csv).toBe(header);
