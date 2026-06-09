@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Designer reference mockups, not application source:
+    "design_handoff_ngepos/**",
+    // Deno edge functions are linted/typed separately, not by the Next config:
+    "supabase/functions/**",
   ]),
 ]);
 
