@@ -24,6 +24,7 @@ interface CartProps {
   savingTab: boolean;
   onSelectTable: (tableId: string | null) => void;
   onSaveTab: () => void;
+  onSetDiscount: (amount: number) => void;
   onUpdateQuantity: (
     productId: string,
     variantId: string | undefined,
@@ -44,6 +45,7 @@ export function Cart({
   savingTab,
   onSelectTable,
   onSaveTab,
+  onSetDiscount,
   onUpdateQuantity,
   onRemoveItem,
   onClear,
@@ -55,11 +57,6 @@ export function Cart({
     businessType === 'fnb' &&
     Boolean(selectedTableId) &&
     !empty;
-  const itemDiscount = cart.items.reduce(
-    (sum, item) => sum + item.discount_amount,
-    0
-  );
-  const gross = cart.subtotal + itemDiscount;
 
   return (
     <aside className="flex h-full w-95 shrink-0 flex-col border-l border-hairline bg-surface-1">
@@ -132,12 +129,26 @@ export function Cart({
 
       <div className="border-t border-hairline-soft p-4.5">
         <div className="mb-3.5 flex flex-col gap-2">
-          <TotalRow label="Subtotal" value={formatCurrency(gross)} />
-          <TotalRow
-            label="Diskon"
-            value={itemDiscount ? `−${formatCurrency(itemDiscount)}` : formatCurrency(0)}
-            valueClassName={itemDiscount ? 'text-success' : undefined}
-          />
+          <TotalRow label="Subtotal" value={formatCurrency(cart.subtotal)} />
+          <div className="flex items-center justify-between text-[13.5px]">
+            <span className="text-ink-muted">Diskon</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[12px] text-ink-subtle">Rp</span>
+              <input
+                type="number"
+                min={0}
+                inputMode="numeric"
+                disabled={empty}
+                value={cart.discount_amount || ''}
+                onChange={(event) =>
+                  onSetDiscount(Number(event.target.value) || 0)
+                }
+                placeholder="0"
+                aria-label="Diskon"
+                className="h-7 w-24 rounded-md border border-hairline bg-surface-1 px-2 text-right font-mono text-[13px] tabular-nums text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              />
+            </div>
+          </div>
           <TotalRow
             label={`Pajak (${Math.round(cart.tax_rate * 100)}%)`}
             value={formatCurrency(cart.tax_amount)}

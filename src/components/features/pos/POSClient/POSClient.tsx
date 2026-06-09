@@ -254,6 +254,7 @@ export default function POSClient({
         savingTab={savingTab}
         onSelectTable={selectTable}
         onSaveTab={handleSaveTab}
+        onSetDiscount={cart.setDiscount}
         onUpdateQuantity={cart.updateItemQuantity}
         onRemoveItem={cart.removeItem}
         onClear={cart.clear}

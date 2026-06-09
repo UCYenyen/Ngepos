@@ -32,6 +32,28 @@ describe('useCart loadItems (resume an open tab)', () => {
     expect(result.current.cart.total).toBe(27500);
   });
 
+  it('applies an order discount with tax on the discounted base', () => {
+    const { result } = renderHook(() => useCart(0.1));
+
+    act(() => result.current.loadItems(items));
+    act(() => result.current.setDiscount(5000));
+
+    expect(result.current.cart.discount_amount).toBe(5000);
+    expect(result.current.cart.subtotal).toBe(25000);
+    expect(result.current.cart.tax_amount).toBe(2000);
+    expect(result.current.cart.total).toBe(22000);
+  });
+
+  it('never lets an over-discount push the total below zero', () => {
+    const { result } = renderHook(() => useCart(0.1));
+
+    act(() => result.current.loadItems(items));
+    act(() => result.current.setDiscount(99999));
+
+    expect(result.current.cart.tax_amount).toBe(0);
+    expect(result.current.cart.total).toBe(0);
+  });
+
   it('overwrites whatever was already in the cart', () => {
     const { result } = renderHook(() => useCart(0.1));
 

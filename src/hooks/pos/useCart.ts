@@ -23,8 +23,9 @@ export function useCart(initialTaxRate: number = DEFAULT_TAX_RATE) {
         (sum, item) => sum + (item.price * item.quantity - item.discount_amount),
         0
       );
-      const tax_amount = subtotal * taxRate;
-      const total = subtotal + tax_amount;
+      const discounted = Math.max(0, subtotal - discountAmount);
+      const tax_amount = discounted * taxRate;
+      const total = discounted + tax_amount;
 
       return {
         subtotal,
