@@ -133,6 +133,7 @@ export function AccountClient() {
                   </span>
                   <input
                     type="text"
+                    autoComplete="name"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Sari Dewi"
@@ -143,6 +144,7 @@ export function AccountClient() {
                   <span className="text-[13px] font-medium text-ink">Email</span>
                   <input
                     type="email"
+                    autoComplete="email"
                     value={email}
                     disabled
                     className={INPUT_CLASS}
@@ -174,6 +176,7 @@ export function AccountClient() {
                   </span>
                   <input
                     type="password"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Minimal 8 karakter"
@@ -186,6 +189,7 @@ export function AccountClient() {
                   </span>
                   <input
                     type="password"
+                    autoComplete="new-password"
                     value={confirm}
                     onChange={(event) => setConfirm(event.target.value)}
                     placeholder="Ulangi password baru"

@@ -81,6 +81,7 @@ export function LoginForm() {
           <input
             type="email"
             required
+            autoComplete="email"
             value={state.email}
             onChange={(event) =>
               setState((prev) => ({ ...prev, email: event.target.value }))
@@ -102,6 +103,7 @@ export function LoginForm() {
           <input
             type="password"
             required
+            autoComplete="current-password"
             value={state.password}
             onChange={(event) =>
               setState((prev) => ({ ...prev, password: event.target.value }))

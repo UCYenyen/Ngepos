@@ -90,6 +90,7 @@ export function ForgotPasswordForm() {
           <input
             type="email"
             required
+            autoComplete="email"
             value={state.email}
             onChange={(event) =>
               setState((prev) => ({ ...prev, email: event.target.value }))

@@ -133,6 +133,7 @@ export function SignupForm() {
           <span className="text-[13px] font-medium text-ink">Nama lengkap</span>
           <input
             required
+            autoComplete="name"
             value={state.name}
             onChange={(event) =>
               setState((prev) => ({ ...prev, name: event.target.value }))
@@ -146,6 +147,7 @@ export function SignupForm() {
           <input
             type="email"
             required
+            autoComplete="email"
             value={state.email}
             onChange={(event) =>
               setState((prev) => ({ ...prev, email: event.target.value }))
@@ -160,6 +162,7 @@ export function SignupForm() {
             type="password"
             required
             minLength={8}
+            autoComplete="new-password"
             value={state.password}
             onChange={(event) =>
               setState((prev) => ({ ...prev, password: event.target.value }))

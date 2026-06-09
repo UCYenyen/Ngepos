@@ -121,6 +121,7 @@ export function ResetPasswordForm() {
           <input
             type="password"
             required
+            autoComplete="new-password"
             value={state.password}
             onChange={(event) =>
               setState((prev) => ({ ...prev, password: event.target.value }))
@@ -136,6 +137,7 @@ export function ResetPasswordForm() {
           <input
             type="password"
             required
+            autoComplete="new-password"
             value={state.confirm}
             onChange={(event) =>
               setState((prev) => ({ ...prev, confirm: event.target.value }))
