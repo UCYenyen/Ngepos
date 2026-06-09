@@ -129,6 +129,7 @@ export default function POSClient({
           <PaymentForm
             total={cart.cart.total}
             paymentGatewayEnabled={paymentGatewayEnabled}
+            qrisImage={business.qris_image_url ?? undefined}
             onSubmit={handlePayment}
             loading={loading}
           />

@@ -1,160 +1,188 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { Lock, Mail, MessageCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
-import type { ReportChannel, ReportSettings as ReportSettingsData } from '@/types/business';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import type {
+  ReportChannel,
+  ReportSettings as ReportSettingsData,
+} from '@/types/business';
 import type { ReportSettingsProps } from './types';
 
-export function ReportSettings({ businessId, planHasAutomatedReports }: ReportSettingsProps) {
+const CHANNELS: { value: ReportChannel; label: string; icon: typeof Mail }[] = [
+  { value: 'email', label: 'Email', icon: Mail },
+  { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+];
+
+export function ReportSettings({
+  businessId,
+  planHasAutomatedReports,
+}: ReportSettingsProps) {
   const [enabled, setEnabled] = useState(false);
   const [channel, setChannel] = useState<ReportChannel>('email');
   const [recipient, setRecipient] = useState('');
   const [loading, setLoading] = useState(planHasAutomatedReports);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadSettings() {
+    if (!planHasAutomatedReports) return;
+    let alive = true;
+    (async () => {
       setLoading(true);
-      setError(null);
       try {
-        const response = await fetch(`/api/businesses/${businessId}/report-settings`);
-        if (!response.ok) {
-          throw new Error('Failed to load report settings');
-        }
+        const response = await fetch(
+          `/api/businesses/${businessId}/report-settings`
+        );
+        if (!response.ok) throw new Error('failed');
         const data = (await response.json()) as ReportSettingsData;
+        if (!alive) return;
         setEnabled(data.report_enabled);
         setChannel(data.report_channel);
         setRecipient(data.report_recipient);
       } catch {
-        setError('Could not load report settings. Please try again.');
+        if (alive) toast.error('Gagal memuat pengaturan laporan');
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
-    }
-
-    if (planHasAutomatedReports) {
-      loadSettings();
-    }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [businessId, planHasAutomatedReports]);
 
-  const handleSave = async () => {
+  async function handleSave() {
     setSaving(true);
-    setError(null);
-    setStatusMessage(null);
     try {
-      const response = await fetch(`/api/businesses/${businessId}/report-settings`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          report_enabled: enabled,
-          report_channel: channel,
-          report_recipient: recipient,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save report settings');
-      }
-
-      const data = (await response.json()) as ReportSettingsData;
-      setEnabled(data.report_enabled);
-      setChannel(data.report_channel);
-      setRecipient(data.report_recipient);
-      setStatusMessage('Report settings saved.');
+      const response = await fetch(
+        `/api/businesses/${businessId}/report-settings`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            report_enabled: enabled,
+            report_channel: channel,
+            report_recipient: recipient,
+          }),
+        }
+      );
+      if (!response.ok) throw new Error('failed');
+      toast.success('Pengaturan laporan disimpan');
     } catch {
-      setError('Could not save report settings. Please try again.');
+      toast.error('Gagal menyimpan pengaturan laporan');
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const controlsDisabled = !planHasAutomatedReports || loading || saving;
-  const recipientLabel = channel === 'whatsapp' ? 'WhatsApp number' : 'Recipient email';
+  if (!planHasAutomatedReports) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase text-accent">
+          <Lock className="size-2.5" strokeWidth={2.5} />
+          Pro
+        </span>
+        <span className="text-[13.5px] text-ink-muted">
+          Aktifkan laporan otomatis dengan paket Pro.
+        </span>
+        <Link href="/billing" className="btn-accent ml-auto h-9 px-4 text-[13px]">
+          Upgrade
+        </Link>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  const recipientLabel =
+    channel === 'whatsapp' ? 'Nomor WhatsApp penerima' : 'Email penerima';
   const recipientPlaceholder =
-    channel === 'whatsapp' ? '+62 812 3456 7890' : 'owner@business.com';
+    channel === 'whatsapp' ? '+62 812-3456-7890' : 'owner@bisnis.com';
 
   return (
-    <div className="space-y-6">
-      {!planHasAutomatedReports ? (
-        <NoticeCard
-          title="Automated reports require the Pro plan"
-          description="Schedule automated monthly sales reports delivered by email or WhatsApp on the Pro and Enterprise plans. Upgrade your subscription to enable this feature."
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col">
+          <span className="text-[13px] font-medium text-ink">
+            Aktifkan laporan otomatis
+          </span>
+          <span className="text-[12px] text-ink-muted">
+            Dikirim otomatis tiap tanggal 1.
+          </span>
+        </div>
+        <Switch checked={enabled} onCheckedChange={setEnabled} disabled={saving} />
+      </div>
+
+      <div className="border-t border-hairline-soft" />
+
+      <div className="flex flex-col gap-2">
+        <span className="text-[13px] font-medium text-ink">
+          Channel pengiriman
+        </span>
+        <div className="flex gap-2.5">
+          {CHANNELS.map((option) => {
+            const Icon = option.icon;
+            const active = channel === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setChannel(option.value)}
+                disabled={saving}
+                className={cn(
+                  'flex flex-1 items-center gap-2.5 rounded-lg border p-3 transition-colors',
+                  active
+                    ? 'border-accent bg-accent/10'
+                    : 'border-hairline bg-surface-1 hover:bg-canvas'
+                )}
+              >
+                <span
+                  className={cn(
+                    'size-4 shrink-0 rounded-full border-2',
+                    active ? 'border-accent bg-accent' : 'border-hairline'
+                  )}
+                />
+                <Icon className="size-4 text-ink-muted" />
+                <span className="text-[13.5px] font-semibold text-ink">
+                  {option.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[13px] font-medium text-ink">{recipientLabel}</span>
+        <input
+          value={recipient}
+          onChange={(event) => setRecipient(event.target.value)}
+          placeholder={recipientPlaceholder}
+          disabled={saving}
+          className="h-10 w-full rounded-md border border-hairline bg-surface-1 px-3 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
         />
-      ) : null}
+      </label>
 
-      <div className="card max-w-2xl space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold text-ink">Automated Monthly Reports</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Send a sales summary at the start of each month to the recipient below.
-          </p>
-        </div>
-
-        {error ? <p className="text-sm text-error">{error}</p> : null}
-        {statusMessage ? (
-          <p className="text-sm text-success">{statusMessage}</p>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-4">
-          <Label htmlFor="report-enabled" className="text-ink">
-            Enabled
-          </Label>
-          <Switch
-            id="report-enabled"
-            checked={enabled}
-            onCheckedChange={setEnabled}
-            disabled={controlsDisabled}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="report-channel" className="text-ink">
-            Delivery channel
-          </Label>
-          <Select
-            value={channel}
-            onValueChange={(value) => value && setChannel(value as ReportChannel)}
-            disabled={controlsDisabled}
-          >
-            <SelectTrigger id="report-channel">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="email">Email</SelectItem>
-              <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="report-recipient" className="text-ink">
-            {recipientLabel}
-          </Label>
-          <Input
-            id="report-recipient"
-            value={recipient}
-            placeholder={recipientPlaceholder}
-            onChange={(e) => setRecipient(e.target.value)}
-            disabled={controlsDisabled}
-          />
-        </div>
-
-        <Button onClick={handleSave} disabled={controlsDisabled}>
-          {saving ? 'Saving...' : 'Save'}
-        </Button>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="btn-primary disabled:opacity-50"
+        >
+          {saving ? 'Menyimpan…' : 'Simpan'}
+        </button>
       </div>
     </div>
   );

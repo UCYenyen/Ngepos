@@ -14,7 +14,8 @@ export interface Business {
   owner_id: string;
   name: string;
   type: BusinessType;
-  logo_url?: string;
+  logo_url?: string | null;
+  qris_image_url?: string | null;
   address?: string;
   timezone: string;
   currency: string;
