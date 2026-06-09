@@ -1,7 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, Receipt as ReceiptIcon, RefreshCw } from 'lucide-react';
+import {
+  Download,
+  Receipt as ReceiptIcon,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -91,6 +96,7 @@ export function TransactionHistoryClient({
   const [status, setStatus] = useState<Status>('loading');
   const [selected, setSelected] = useState<HistoryTransaction | null>(null);
   const [filter, setFilter] = useState<DateFilter>('today');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -156,8 +162,11 @@ export function TransactionHistoryClient({
     );
   }
 
-  const filtered = transactions.filter((transaction) =>
-    inRange(transaction.created_at, filter)
+  const q = query.trim().toLowerCase();
+  const filtered = transactions.filter(
+    (transaction) =>
+      inRange(transaction.created_at, filter) &&
+      (!q || transaction.id.toLowerCase().includes(q))
   );
   const paidTotal = filtered
     .filter((transaction) => transaction.payment_status === 'paid')
@@ -199,6 +208,16 @@ export function TransactionHistoryClient({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-ink-subtle" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Cari #ID"
+              aria-label="Cari transaksi"
+              className="h-8 w-32 rounded-full border border-hairline bg-surface-1 pl-8 pr-3 text-[12.5px] text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </div>
           <div className="flex gap-1.5">
             {FILTERS.map((item) => (
               <button
@@ -230,7 +249,9 @@ export function TransactionHistoryClient({
 
       {filtered.length === 0 ? (
         <p className="rounded-xl border border-dashed border-hairline px-5 py-10 text-center text-sm text-ink-muted">
-          Tidak ada transaksi pada periode ini.
+          {q
+            ? 'Tidak ada transaksi yang cocok.'
+            : 'Tidak ada transaksi pada periode ini.'}
         </p>
       ) : (
         <div className="flex flex-col gap-2.5">

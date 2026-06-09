@@ -74,6 +74,24 @@ describe('TransactionHistoryClient', () => {
     expect(screen.getByRole('button', { name: /tutup/i })).toBeInTheDocument();
   });
 
+  it('filters the list by transaction id search', async () => {
+    mockFetch(transactions);
+
+    render(<TransactionHistoryClient businessId="b1" business={business} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#ABCDEF12')).toBeInTheDocument();
+    });
+
+    const search = screen.getByPlaceholderText(/cari #id/i);
+    fireEvent.change(search, { target: { value: 'zzzz' } });
+    expect(screen.queryByText('#ABCDEF12')).not.toBeInTheDocument();
+    expect(screen.getByText(/tidak ada transaksi yang cocok/i)).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'abcdef' } });
+    expect(screen.getByText('#ABCDEF12')).toBeInTheDocument();
+  });
+
   it('shows an empty state when there are no transactions', async () => {
     mockFetch([]);
 
