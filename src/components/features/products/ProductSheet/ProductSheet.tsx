@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
+import { VariantEditor } from '../VariantEditor/VariantEditor';
 import type { Category, Product } from '@/types/product';
 import type { ProductFormValues, ProductSheetProps } from './types';
 
@@ -200,11 +201,15 @@ function ProductSheetForm({
             onChange={setHasVariants}
           />
 
-          {hasVariants && (
-            <p className="rounded-lg bg-canvas px-3 py-2.5 text-[12.5px] text-ink-muted">
-              Pengelolaan varian akan tersedia di pembaruan berikutnya.
-            </p>
-          )}
+          {hasVariants &&
+            (product ? (
+              <VariantEditor productId={product.id} />
+            ) : (
+              <p className="rounded-lg bg-canvas px-3 py-2.5 text-[12.5px] text-ink-muted">
+                Simpan produk dulu, lalu buka kembali produk ini untuk menambah
+                varian.
+              </p>
+            ))}
         </div>
       </div>
 

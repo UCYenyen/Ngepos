@@ -1,5 +1,7 @@
 -- Allow owners and managers to delete tables (missing from 002_pos_core_schema).
 
+DROP POLICY IF EXISTS tables_delete ON tables;
+
 CREATE POLICY tables_delete ON tables
   FOR DELETE USING (
     EXISTS (

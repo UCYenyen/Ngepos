@@ -14,6 +14,11 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS business_assets_read ON storage.objects;
+DROP POLICY IF EXISTS business_assets_insert ON storage.objects;
+DROP POLICY IF EXISTS business_assets_update ON storage.objects;
+DROP POLICY IF EXISTS business_assets_delete ON storage.objects;
+
 CREATE POLICY business_assets_read ON storage.objects
   FOR SELECT USING (bucket_id = 'business-assets');
 
