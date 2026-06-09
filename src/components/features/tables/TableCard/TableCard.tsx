@@ -2,16 +2,26 @@
 
 import { Users } from 'lucide-react';
 import { TABLE_STATUS_META } from '../tableStatus';
+import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import type { Table } from '@/types/pos';
+import type { OpenTableOrder, Table } from '@/types/pos';
 
 interface TableCardProps {
   table: Table;
+  openOrder?: OpenTableOrder | null;
   onClick: (table: Table) => void;
 }
 
-export function TableCard({ table, onClick }: TableCardProps) {
+function tabTotal(order: OpenTableOrder): number {
+  return order.items.reduce(
+    (sum, item) => sum + item.price * item.quantity - item.discount_amount,
+    0
+  );
+}
+
+export function TableCard({ table, openOrder, onClick }: TableCardProps) {
   const meta = TABLE_STATUS_META[table.status];
+  const hasTab = Boolean(openOrder);
 
   return (
     <button
@@ -19,7 +29,9 @@ export function TableCard({ table, onClick }: TableCardProps) {
       onClick={() => onClick(table)}
       className={cn(
         'flex flex-col gap-3 rounded-xl border bg-surface-1 p-4 text-left transition-colors hover:border-ink-subtle',
-        table.status === 'occupied' ? 'border-accent' : 'border-hairline'
+        hasTab || table.status === 'occupied'
+          ? 'border-accent'
+          : 'border-hairline'
       )}
     >
       <div className="flex items-center justify-between">
@@ -29,15 +41,26 @@ export function TableCard({ table, onClick }: TableCardProps) {
           style={{ background: meta.dot }}
         />
       </div>
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1 text-[13px] text-ink-muted">
-          <Users className="size-3.5" />
-          {table.capacity ?? '—'} kursi
-        </span>
-        <span className={cn('text-[12px] font-medium', meta.text)}>
-          {meta.label}
-        </span>
-      </div>
+      {openOrder ? (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-medium text-accent">
+            Tab terbuka
+          </span>
+          <span className="font-mono text-[13px] font-bold tabular-nums text-ink">
+            {formatCurrency(tabTotal(openOrder))}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-[13px] text-ink-muted">
+            <Users className="size-3.5" />
+            {table.capacity ?? '—'} kursi
+          </span>
+          <span className={cn('text-[12px] font-medium', meta.text)}>
+            {meta.label}
+          </span>
+        </div>
+      )}
     </button>
   );
 }

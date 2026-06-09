@@ -18,7 +18,7 @@ import {
   type TableFormValues,
 } from '../TableFormDialog/TableFormDialog';
 import { TABLE_STATUSES, TABLE_STATUS_META } from '../tableStatus';
-import type { Table, TableStatus } from '@/types/pos';
+import type { OpenTableOrder, Table, TableStatus } from '@/types/pos';
 
 interface TablesClientProps {
   businessId: string;
@@ -35,8 +35,20 @@ async function fetchTables(businessId: string): Promise<Table[]> {
   return response.json();
 }
 
+async function fetchOpenOrders(
+  businessId: string
+): Promise<Record<string, OpenTableOrder>> {
+  const response = await fetch(`/api/table-orders?businessId=${businessId}`);
+  if (!response.ok) return {};
+  const orders = (await response.json()) as OpenTableOrder[];
+  return Object.fromEntries(orders.map((order) => [order.table_id, order]));
+}
+
 export function TablesClient({ businessId, canManage }: TablesClientProps) {
   const [tables, setTables] = useState<Table[]>([]);
+  const [openOrders, setOpenOrders] = useState<Record<string, OpenTableOrder>>(
+    {}
+  );
   const [status, setStatus] = useState<Status>('loading');
   const [drawerTarget, setDrawerTarget] = useState<Table | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -50,9 +62,13 @@ export function TablesClient({ businessId, canManage }: TablesClientProps) {
     (async () => {
       setStatus('loading');
       try {
-        const data = await fetchTables(businessId);
+        const [data, orders] = await Promise.all([
+          fetchTables(businessId),
+          fetchOpenOrders(businessId),
+        ]);
         if (!alive) return;
         setTables(data);
+        setOpenOrders(orders);
         setStatus('ready');
       } catch {
         if (alive) setStatus('error');
@@ -65,10 +81,37 @@ export function TablesClient({ businessId, canManage }: TablesClientProps) {
 
   async function refetch() {
     try {
-      setTables(await fetchTables(businessId));
+      const [data, orders] = await Promise.all([
+        fetchTables(businessId),
+        fetchOpenOrders(businessId),
+      ]);
+      setTables(data);
+      setOpenOrders(orders);
       setStatus('ready');
     } catch {
       setStatus('error');
+    }
+  }
+
+  async function cancelTab(table: Table) {
+    const order = openOrders[table.id];
+    if (!order) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/table-orders/${order.id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error();
+      setOpenOrders((prev) => {
+        const next = { ...prev };
+        delete next[table.id];
+        return next;
+      });
+      toast.success('Pesanan meja dibatalkan');
+    } catch {
+      toast.error('Gagal membatalkan pesanan');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -240,6 +283,7 @@ export function TablesClient({ businessId, canManage }: TablesClientProps) {
               <TableCard
                 key={table.id}
                 table={table}
+                openOrder={openOrders[table.id] ?? null}
                 onClick={setDrawerTarget}
               />
             ))}
@@ -252,10 +296,12 @@ export function TablesClient({ businessId, canManage }: TablesClientProps) {
         businessId={businessId}
         canManage={canManage}
         busy={busy}
+        openOrder={drawerTarget ? openOrders[drawerTarget.id] ?? null : null}
         onOpenChange={(open) => {
           if (!open) setDrawerTarget(null);
         }}
         onStatusChange={changeStatus}
+        onCancelTab={cancelTab}
         onEdit={openEdit}
         onDelete={(table) => {
           setDrawerTarget(null);
