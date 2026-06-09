@@ -24,6 +24,7 @@ export function Receipt({
   business,
   amountReceived,
   tableName,
+  closeLabel,
   onClose,
 }: ReceiptProps) {
   const change = amountReceived != null ? amountReceived - transaction.total : null;
@@ -143,8 +144,8 @@ export function Receipt({
             onClick={onClose}
             className="btn-accent h-11 flex-1 gap-2"
           >
-            <Plus className="size-4" />
-            Transaksi baru
+            {!closeLabel && <Plus className="size-4" />}
+            {closeLabel ?? 'Transaksi baru'}
           </button>
         </div>
         <div className="flex items-center justify-center gap-4 text-[12.5px] text-ink-subtle">

@@ -28,7 +28,16 @@ describe('getNavItems', () => {
     });
 
     expect(new Set(items.map((item) => item.key))).toEqual(
-      new Set(['pos', 'products', 'inventory', 'staff', 'analytics', 'reports', 'settings'])
+      new Set([
+        'pos',
+        'products',
+        'inventory',
+        'staff',
+        'history',
+        'analytics',
+        'reports',
+        'settings',
+      ])
     );
     expect(items.every((item) => !item.locked)).toBe(true);
   });
@@ -73,7 +82,16 @@ describe('getNavItems', () => {
     const byKey = new Map(items.map((item) => [item.key, item]));
 
     expect(new Set(byKey.keys())).toEqual(
-      new Set(['pos', 'products', 'inventory', 'staff', 'analytics', 'reports', 'settings'])
+      new Set([
+        'pos',
+        'products',
+        'inventory',
+        'staff',
+        'history',
+        'analytics',
+        'reports',
+        'settings',
+      ])
     );
     expect(byKey.get('inventory')?.locked).toBe(true);
     expect(byKey.get('analytics')?.locked).toBe(true);

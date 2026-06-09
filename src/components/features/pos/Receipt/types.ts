@@ -16,5 +16,6 @@ export interface ReceiptProps {
   business: Business;
   amountReceived?: number;
   tableName?: string;
+  closeLabel?: string;
   onClose: () => void;
 }

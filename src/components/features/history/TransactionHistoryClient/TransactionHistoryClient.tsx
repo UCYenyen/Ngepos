@@ -1,0 +1,198 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Receipt as ReceiptIcon, RefreshCw } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Receipt } from '@/components/features/pos/Receipt/Receipt';
+import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import type {
+  PaymentMethod,
+  PaymentStatus,
+  Transaction,
+  TransactionItem,
+} from '@/types/pos';
+import type { ReceiptLineItem } from '@/components/features/pos/Receipt/types';
+import type { TransactionHistoryClientProps } from './types';
+
+interface HistoryTransaction extends Transaction {
+  transaction_items: TransactionItem[];
+}
+
+type Status = 'loading' | 'error' | 'ready';
+
+const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cash: 'Tunai',
+  qris: 'QRIS',
+  gateway: 'Kartu',
+};
+
+const STATUS_META: Record<PaymentStatus, { label: string; className: string }> =
+  {
+    paid: { label: 'Lunas', className: 'bg-success-light text-success' },
+    pending: { label: 'Menunggu', className: 'bg-surface-2 text-ink-muted' },
+    cancelled: { label: 'Batal', className: 'bg-error-light text-error' },
+  };
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function toReceiptItems(items: TransactionItem[]): ReceiptLineItem[] {
+  return items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    discount_amount: item.discount_amount,
+    subtotal: item.subtotal,
+  }));
+}
+
+export function TransactionHistoryClient({
+  businessId,
+  business,
+}: TransactionHistoryClientProps) {
+  const [transactions, setTransactions] = useState<HistoryTransaction[]>([]);
+  const [status, setStatus] = useState<Status>('loading');
+  const [selected, setSelected] = useState<HistoryTransaction | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setStatus('loading');
+      try {
+        const response = await fetch(
+          `/api/transactions?businessId=${businessId}`
+        );
+        if (!response.ok) throw new Error('fetch failed');
+        const data = (await response.json()) as HistoryTransaction[];
+        if (!alive) return;
+        setTransactions(data);
+        setStatus('ready');
+      } catch {
+        if (alive) setStatus('error');
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [businessId]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col gap-2.5">
+        {['a', 'b', 'c', 'd', 'e'].map((key) => (
+          <Skeleton key={key} className="h-16 rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-12 text-center">
+        <p className="text-sm text-ink-muted">Gagal memuat riwayat transaksi.</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="btn-secondary gap-2"
+        >
+          <RefreshCw className="size-4" />
+          Coba lagi
+        </button>
+      </div>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-hairline px-5 py-16 text-center">
+        <span className="flex size-14 items-center justify-center rounded-2xl bg-surface-2 text-ink-subtle">
+          <ReceiptIcon className="size-6" />
+        </span>
+        <div className="flex max-w-sm flex-col gap-1.5">
+          <p className="text-base font-semibold text-ink">Belum ada transaksi</p>
+          <p className="text-[13px] text-ink-muted">
+            Transaksi yang kamu proses di POS akan muncul di sini.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex flex-col gap-2.5">
+        {transactions.map((transaction) => {
+          const statusMeta = STATUS_META[transaction.payment_status];
+          const itemCount = transaction.transaction_items?.length ?? 0;
+          return (
+            <button
+              key={transaction.id}
+              type="button"
+              onClick={() => setSelected(transaction)}
+              className="flex items-center justify-between gap-4 rounded-xl border border-hairline bg-surface-1 px-4 py-3.5 text-left transition-colors hover:border-ink-subtle"
+            >
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="truncate text-[13.5px] font-semibold text-ink">
+                  #{transaction.id.slice(0, 8).toUpperCase()}
+                </span>
+                <span className="text-[12px] text-ink-muted">
+                  {formatDateTime(transaction.created_at)} · {itemCount} item
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="hidden text-[12px] text-ink-muted sm:inline">
+                  {PAYMENT_LABEL[transaction.payment_method]}
+                </span>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                    statusMeta.className
+                  )}
+                >
+                  {statusMeta.label}
+                </span>
+                <span className="font-mono text-[14px] font-bold tabular-nums text-ink">
+                  {formatCurrency(transaction.total)}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <Dialog
+        open={selected !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-115">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Detail transaksi</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <Receipt
+              transaction={selected}
+              items={toReceiptItems(selected.transaction_items ?? [])}
+              business={business}
+              closeLabel="Tutup"
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

@@ -18,6 +18,7 @@ export type NavItemKey =
   | 'inventory'
   | 'tables'
   | 'staff'
+  | 'history'
   | 'analytics'
   | 'reports'
   | 'settings';
@@ -78,6 +79,15 @@ export function getNavItems({
 
   if (canManageStaff(role)) {
     items.push({ key: 'staff', label: 'Staf', href: to('staff'), locked: false });
+  }
+
+  if (canViewReports(role)) {
+    items.push({
+      key: 'history',
+      label: 'Riwayat',
+      href: to('history'),
+      locked: false,
+    });
   }
 
   if (canViewAnalytics(role)) {
