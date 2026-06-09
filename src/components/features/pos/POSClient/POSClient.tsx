@@ -1,36 +1,75 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useCart } from '@/hooks/pos/useCart';
 import { ProductSelector } from '../ProductSelector/ProductSelector';
 import { Cart } from '../Cart/Cart';
 import { PaymentForm } from '../PaymentForm/PaymentForm';
 import { Receipt } from '../Receipt/Receipt';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { Business } from '@/types/business';
-import type { CartItem, PaymentMethod, Transaction, TransactionItem } from '@/types/pos';
+import type { CartItem, PaymentMethod, Transaction } from '@/types/pos';
+import type { Product } from '@/types/product';
+import type { ReceiptLineItem } from '../Receipt/types';
 
 interface POSClientProps {
   businessId: string;
   business: Business;
+  paymentGatewayEnabled: boolean;
 }
 
-export default function POSClient({ businessId, business }: POSClientProps) {
+interface ReceiptData {
+  transaction: Transaction;
+  items: ReceiptLineItem[];
+  amountReceived?: number;
+}
+
+export default function POSClient({
+  businessId,
+  business,
+  paymentGatewayEnabled,
+}: POSClientProps) {
   const cart = useCart();
   const [showPayment, setShowPayment] = useState(false);
-  const [showReceipt, setShowReceipt] = useState(false);
-  const [receipt, setReceipt] = useState<(Transaction & { transaction_items: TransactionItem[] }) | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handlePayment(paymentMethod: PaymentMethod, amountReceived?: number, notes?: string) {
-    setLoading(true);
+  function addProduct(product: Product) {
+    const item: CartItem = {
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      discount_amount: 0,
+    };
+    cart.addItem(item);
+  }
 
+  async function handlePayment(
+    paymentMethod: PaymentMethod,
+    amountReceived?: number
+  ) {
+    setLoading(true);
     try {
+      const items: ReceiptLineItem[] = cart.cart.items.map((item) => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        discount_amount: item.discount_amount,
+        subtotal: item.price * item.quantity - item.discount_amount,
+      }));
+
       const payload = {
         businessId,
         items: cart.cart.items.map((item) => ({
           product_id: item.product_id,
-          variant_id: item.variant_id,
+          variant_id: item.variant_id ?? null,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
@@ -42,7 +81,7 @@ export default function POSClient({ businessId, business }: POSClientProps) {
         tax_amount: cart.cart.tax_amount,
         total: cart.cart.total,
         payment_method: paymentMethod,
-        notes,
+        notes: null,
       };
 
       const response = await fetch('/api/transactions', {
@@ -52,84 +91,69 @@ export default function POSClient({ businessId, business }: POSClientProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create transaction');
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error ?? 'Gagal membuat transaksi');
       }
 
-      const transaction = await response.json();
+      const transaction = (await response.json()) as Transaction;
 
-      const transactionWithItems = {
-        ...transaction,
-        transaction_items: payload.items,
-      };
-
-      setReceipt(transactionWithItems);
+      setReceipt({ transaction, items, amountReceived });
       setShowPayment(false);
-      setShowReceipt(true);
       cart.clear();
     } catch (error) {
-      console.error('Payment error:', error);
-      alert(error instanceof Error ? error.message : 'Payment failed');
+      toast.error(error instanceof Error ? error.message : 'Pembayaran gagal');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="h-screen flex flex-col gap-4 p-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">{business.name}</h1>
-          <p className="text-slate-600 capitalize">{business.type}</p>
-        </div>
-        <div className="text-right">
-          <div className="text-sm text-slate-600">Items in Cart</div>
-          <div className="text-2xl font-bold">{cart.cart.items.length}</div>
-        </div>
-      </div>
-
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 flex flex-col">
-          <ProductSelector businessId={businessId} onSelectProduct={cart.addItem} />
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div className="flex-1 overflow-auto">
-            <Cart
-              cart={cart.cart}
-              onUpdateQuantity={cart.updateItemQuantity}
-              onUpdateDiscount={cart.updateItemDiscount}
-              onRemoveItem={cart.removeItem}
-              onSetDiscount={cart.setDiscount}
-              onSetTaxRate={cart.setTaxRate}
-            />
-          </div>
-
-          {cart.cart.items.length > 0 && (
-            <button
-              onClick={() => setShowPayment(true)}
-              className="w-full bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition"
-            >
-              Proceed to Payment
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="flex h-full min-h-0">
+      <ProductSelector businessId={businessId} onSelectProduct={addProduct} />
+      <Cart
+        cart={cart.cart}
+        businessType={business.type}
+        onUpdateQuantity={cart.updateItemQuantity}
+        onRemoveItem={cart.removeItem}
+        onClear={cart.clear}
+        onCheckout={() => setShowPayment(true)}
+      />
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-115">
           <DialogHeader>
-            <DialogTitle>Payment</DialogTitle>
+            <DialogTitle>Pembayaran</DialogTitle>
           </DialogHeader>
-          <PaymentForm total={cart.cart.total} onSubmit={handlePayment} loading={loading} />
+          <PaymentForm
+            total={cart.cart.total}
+            paymentGatewayEnabled={paymentGatewayEnabled}
+            onSubmit={handlePayment}
+            loading={loading}
+          />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="max-w-2xl">
+      <Dialog
+        open={receipt !== null}
+        onOpenChange={(open) => {
+          if (!open) setReceipt(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-115">
           <DialogHeader>
-            <DialogTitle>Receipt</DialogTitle>
+            <DialogTitle className="sr-only">Struk pembayaran</DialogTitle>
           </DialogHeader>
-          {receipt && <Receipt transaction={receipt} business={business} onClose={() => setShowReceipt(false)} />}
+          {receipt && (
+            <Receipt
+              transaction={receipt.transaction}
+              items={receipt.items}
+              business={business}
+              amountReceived={receipt.amountReceived}
+              onClose={() => setReceipt(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,159 +1,223 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Trash2 } from 'lucide-react';
-import type { CartState } from '@/types/pos';
+import {
+  ChevronDown,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Trash2,
+  UtensilsCrossed,
+  Wallet,
+} from 'lucide-react';
+import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import type { BusinessType } from '@/types/business';
+import type { CartItem, CartState } from '@/types/pos';
 
 interface CartProps {
   cart: CartState;
-  onUpdateQuantity: (productId: string, variantId: string | undefined, quantity: number) => void;
-  onUpdateDiscount: (productId: string, variantId: string | undefined, discountAmount: number) => void;
+  businessType: BusinessType;
+  onUpdateQuantity: (
+    productId: string,
+    variantId: string | undefined,
+    quantity: number
+  ) => void;
   onRemoveItem: (productId: string, variantId: string | undefined) => void;
-  onSetDiscount: (discountAmount: number) => void;
-  onSetTaxRate: (taxRate: number) => void;
+  onClear: () => void;
+  onCheckout: () => void;
 }
 
 export function Cart({
   cart,
+  businessType,
   onUpdateQuantity,
-  onUpdateDiscount,
   onRemoveItem,
-  onSetDiscount,
-  onSetTaxRate,
+  onClear,
+  onCheckout,
 }: CartProps) {
-  if (cart.items.length === 0) {
-    return (
-      <Card className="p-6 text-center text-slate-500">
-        <p>Cart is empty</p>
-        <p className="text-sm">Select products to add them to cart</p>
-      </Card>
-    );
-  }
+  const empty = cart.items.length === 0;
+  const itemDiscount = cart.items.reduce(
+    (sum, item) => sum + item.discount_amount,
+    0
+  );
+  const gross = cart.subtotal + itemDiscount;
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      <ScrollArea className="flex-1">
-        <div className="space-y-3 pr-4">
+    <aside className="flex h-full w-95 shrink-0 flex-col border-l border-hairline bg-surface-1">
+      <div className="flex items-center justify-between border-b border-hairline-soft px-4.5 py-4">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base font-semibold text-ink">Pesanan</span>
+          {!empty && (
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-xs font-semibold text-surface-1">
+              {cart.items.length}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={empty}
+          aria-label="Kosongkan keranjang"
+          className="btn-icon size-8 text-ink-subtle hover:text-error disabled:opacity-40"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
+
+      {businessType === 'fnb' && (
+        <div className="border-b border-hairline-soft px-4.5 py-3">
+          <button
+            type="button"
+            disabled
+            title="Segera hadir"
+            className="flex h-9.5 w-full items-center justify-between rounded-md border border-hairline bg-surface-1 px-3 text-sm text-ink-muted disabled:opacity-70"
+          >
+            <span className="flex items-center gap-2">
+              <UtensilsCrossed className="size-4 text-ink-subtle" />
+              Pilih meja
+            </span>
+            <ChevronDown className="size-4 text-ink-subtle" />
+          </button>
+        </div>
+      )}
+
+      {empty ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-ink-tertiary">
+          <ShoppingCart className="size-10" strokeWidth={1.4} />
+          <span className="text-sm font-medium text-ink-subtle">
+            Keranjang kosong
+          </span>
+          <span className="max-w-50 text-[12.5px]">
+            Pilih produk di sebelah kiri untuk memulai transaksi.
+          </span>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-4.5 py-4">
           {cart.items.map((item) => (
-            <Card key={`${item.product_id}-${item.variant_id}`} className="p-3">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm">{item.name}</h3>
-                  {item.variant_id && (
-                    <p className="text-xs text-slate-500">Variant: {item.variant_id}</p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onRemoveItem(item.product_id, item.variant_id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-2">
-                <div>
-                  <label className="text-xs text-slate-600">Qty</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      onUpdateQuantity(item.product_id, item.variant_id, parseInt(e.target.value) || 0)
-                    }
-                    className="h-8"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-600">Price</label>
-                  <div className="h-8 flex items-center text-sm font-semibold">
-                    IDR {item.price.toLocaleString('id-ID')}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-600">Subtotal</label>
-                  <div className="h-8 flex items-center text-sm font-bold text-blue-600">
-                    IDR {(item.price * item.quantity).toLocaleString('id-ID')}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-600">Item Discount</label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={item.discount_amount}
-                  onChange={(e) =>
-                    onUpdateDiscount(item.product_id, item.variant_id, parseFloat(e.target.value) || 0)
-                  }
-                  placeholder="0"
-                  className="h-8 text-sm"
-                />
-              </div>
-            </Card>
+            <CartLine
+              key={`${item.product_id}-${item.variant_id ?? ''}`}
+              item={item}
+              onDecrease={() =>
+                onUpdateQuantity(
+                  item.product_id,
+                  item.variant_id,
+                  item.quantity - 1
+                )
+              }
+              onIncrease={() =>
+                onUpdateQuantity(
+                  item.product_id,
+                  item.variant_id,
+                  item.quantity + 1
+                )
+              }
+              onRemove={() => onRemoveItem(item.product_id, item.variant_id)}
+            />
           ))}
         </div>
-      </ScrollArea>
+      )}
 
-      <Separator />
-
-      <div className="space-y-3">
-        <div>
-          <label className="text-xs text-slate-600">Cart Discount</label>
-          <Input
-            type="number"
-            min="0"
-            value={cart.discount_amount}
-            onChange={(e) => onSetDiscount(parseFloat(e.target.value) || 0)}
-            placeholder="0"
-            className="h-8"
+      <div className="border-t border-hairline-soft p-4.5">
+        <div className="mb-3.5 flex flex-col gap-2">
+          <TotalRow label="Subtotal" value={formatCurrency(gross)} />
+          <TotalRow
+            label="Diskon"
+            value={itemDiscount ? `−${formatCurrency(itemDiscount)}` : formatCurrency(0)}
+            valueClassName={itemDiscount ? 'text-success' : undefined}
           />
-        </div>
-
-        <div>
-          <label className="text-xs text-slate-600">Tax Rate (%)</label>
-          <Input
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={cart.tax_rate * 100}
-            onChange={(e) => onSetTaxRate(parseFloat(e.target.value) / 100 || 0)}
-            className="h-8"
+          <TotalRow
+            label={`Pajak (${Math.round(cart.tax_rate * 100)}%)`}
+            value={formatCurrency(cart.tax_amount)}
           />
-        </div>
-
-        <div className="space-y-2 bg-slate-100 p-3 rounded">
-          <div className="flex justify-between text-sm">
-            <span>Subtotal:</span>
-            <span>IDR {cart.subtotal.toLocaleString('id-ID')}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Item Discount:</span>
-            <span className="text-red-600">
-              -IDR {cart.items.reduce((sum, i) => sum + i.discount_amount, 0).toLocaleString('id-ID')}
+          <div className="my-1 border-t border-hairline-soft" />
+          <div className="flex items-center justify-between">
+            <span className="text-base font-semibold text-ink">Total</span>
+            <span className="font-mono text-[21px] font-bold tabular-nums text-ink">
+              {formatCurrency(cart.total)}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span>Cart Discount:</span>
-            <span className="text-red-600">-IDR {cart.discount_amount.toLocaleString('id-ID')}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onCheckout}
+          disabled={empty}
+          className="btn-accent h-12 w-full gap-2 text-base disabled:opacity-50"
+        >
+          <Wallet className="size-5" />
+          Bayar{!empty && ` · ${formatCurrency(cart.total)}`}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+interface TotalRowProps {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}
+
+function TotalRow({ label, value, valueClassName }: TotalRowProps) {
+  return (
+    <div className="flex items-center justify-between text-[13.5px]">
+      <span className="text-ink-muted">{label}</span>
+      <span
+        className={cn('font-mono tabular-nums text-ink-muted', valueClassName)}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+interface CartLineProps {
+  item: CartItem;
+  onDecrease: () => void;
+  onIncrease: () => void;
+  onRemove: () => void;
+}
+
+function CartLine({ item, onDecrease, onIncrease, onRemove }: CartLineProps) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="size-10 shrink-0 rounded-md bg-surface-2" />
+      <div className="flex flex-1 flex-col gap-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-[13px] font-semibold text-ink">{item.name}</span>
+          <span className="font-mono text-[13px] font-semibold tabular-nums text-ink">
+            {formatCurrency(item.price * item.quantity)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onDecrease}
+              aria-label="Kurangi"
+              className="flex size-6 items-center justify-center rounded-md border border-hairline text-ink-muted transition-colors hover:bg-surface-2"
+            >
+              <Minus className="size-3" />
+            </button>
+            <span className="min-w-4 text-center font-mono text-[13px] font-semibold tabular-nums text-ink">
+              {item.quantity}
+            </span>
+            <button
+              type="button"
+              onClick={onIncrease}
+              aria-label="Tambah"
+              className="flex size-6 items-center justify-center rounded-md border border-hairline text-ink-muted transition-colors hover:bg-surface-2"
+            >
+              <Plus className="size-3" />
+            </button>
           </div>
-          <div className="flex justify-between text-sm">
-            <span>Tax ({(cart.tax_rate * 100).toFixed(1)}%):</span>
-            <span>IDR {cart.tax_amount.toLocaleString('id-ID')}</span>
-          </div>
-          <Separator className="my-2" />
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total:</span>
-            <span className="text-blue-600">IDR {cart.total.toLocaleString('id-ID')}</span>
-          </div>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-1 text-[11.5px] text-ink-subtle transition-colors hover:text-error"
+          >
+            <Trash2 className="size-3" />
+            Hapus
+          </button>
         </div>
       </div>
     </div>
