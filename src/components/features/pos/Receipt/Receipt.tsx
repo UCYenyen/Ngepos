@@ -50,8 +50,8 @@ export function Receipt({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-col items-center gap-2.5 px-6 pt-2 text-center">
+    <div className="flex flex-col" data-print-receipt>
+      <div className="flex flex-col items-center gap-2.5 px-6 pt-2 text-center print:hidden">
         <span className="flex size-12 items-center justify-center rounded-full bg-success-light text-success">
           <Check className="size-6.5" strokeWidth={2.4} />
         </span>

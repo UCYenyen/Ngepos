@@ -67,6 +67,16 @@ export function ProductSelector({
     return matchesCategory && matchesQuery;
   });
 
+  function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter' || !q || filtered.length === 0) return;
+    event.preventDefault();
+    const exactSku = filtered.find(
+      (product) => product.sku?.toLowerCase() === q
+    );
+    onSelectProduct(exactSku ?? filtered[0]);
+    setQuery('');
+  }
+
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-canvas">
       <div className="border-b border-hairline-soft px-6 pb-3.5 pt-4">
@@ -75,6 +85,7 @@ export function ProductSelector({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={handleSearchKeyDown}
             placeholder="Cari produk atau scan barcode…"
             className="h-10 w-full rounded-md border border-hairline bg-surface-1 pl-9 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
           />
