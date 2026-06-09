@@ -1,22 +1,18 @@
 'use client';
 
-import {
-  ChevronDown,
-  Minus,
-  Plus,
-  ShoppingCart,
-  Trash2,
-  UtensilsCrossed,
-  Wallet,
-} from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Trash2, Wallet } from 'lucide-react';
+import { TableSelect } from '../TableSelect/TableSelect';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { BusinessType } from '@/types/business';
-import type { CartItem, CartState } from '@/types/pos';
+import type { CartItem, CartState, Table } from '@/types/pos';
 
 interface CartProps {
   cart: CartState;
   businessType: BusinessType;
+  tables: Table[];
+  selectedTableId: string | null;
+  onSelectTable: (tableId: string | null) => void;
   onUpdateQuantity: (
     productId: string,
     variantId: string | undefined,
@@ -30,6 +26,9 @@ interface CartProps {
 export function Cart({
   cart,
   businessType,
+  tables,
+  selectedTableId,
+  onSelectTable,
   onUpdateQuantity,
   onRemoveItem,
   onClear,
@@ -66,18 +65,11 @@ export function Cart({
 
       {businessType === 'fnb' && (
         <div className="border-b border-hairline-soft px-4.5 py-3">
-          <button
-            type="button"
-            disabled
-            title="Segera hadir"
-            className="flex h-9.5 w-full items-center justify-between rounded-md border border-hairline bg-surface-1 px-3 text-sm text-ink-muted disabled:opacity-70"
-          >
-            <span className="flex items-center gap-2">
-              <UtensilsCrossed className="size-4 text-ink-subtle" />
-              Pilih meja
-            </span>
-            <ChevronDown className="size-4 text-ink-subtle" />
-          </button>
+          <TableSelect
+            tables={tables}
+            selectedTableId={selectedTableId}
+            onSelect={onSelectTable}
+          />
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useCart } from '@/hooks/pos/useCart';
 import { ProductSelector } from '../ProductSelector/ProductSelector';
@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Business } from '@/types/business';
-import type { PaymentMethod, Transaction } from '@/types/pos';
+import type { PaymentMethod, Table, Transaction } from '@/types/pos';
 import type { Product, ProductVariant } from '@/types/product';
 import type { ReceiptLineItem } from '../Receipt/types';
 
@@ -41,6 +41,27 @@ export default function POSClient({
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [loading, setLoading] = useState(false);
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (business.type !== 'fnb') return;
+    let alive = true;
+    (async () => {
+      try {
+        const response = await fetch(`/api/tables?businessId=${businessId}`);
+        if (response.ok) {
+          const data = (await response.json()) as Table[];
+          if (alive) setTables(data);
+        }
+      } catch {
+        if (alive) setTables([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [business.type, businessId]);
 
   function selectProduct(product: Product) {
     if (product.has_variants) {
@@ -99,6 +120,7 @@ export default function POSClient({
         total: cart.cart.total,
         payment_method: paymentMethod,
         notes: null,
+        tableId: selectedTableId,
       };
 
       const response = await fetch('/api/transactions', {
@@ -119,6 +141,7 @@ export default function POSClient({
       setReceipt({ transaction, items, amountReceived });
       setShowPayment(false);
       cart.clear();
+      setSelectedTableId(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Pembayaran gagal');
     } finally {
@@ -132,6 +155,9 @@ export default function POSClient({
       <Cart
         cart={cart.cart}
         businessType={business.type}
+        tables={tables}
+        selectedTableId={selectedTableId}
+        onSelectTable={setSelectedTableId}
         onUpdateQuantity={cart.updateItemQuantity}
         onRemoveItem={cart.removeItem}
         onClear={cart.clear}

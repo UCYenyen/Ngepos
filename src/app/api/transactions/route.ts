@@ -102,6 +102,7 @@ interface CreateTransactionRequest {
   total: number;
   payment_method: string;
   notes: string | null;
+  tableId?: string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
       total,
       payment_method,
       notes,
+      tableId,
     }: CreateTransactionRequest = await request.json();
 
     if (
@@ -166,6 +168,21 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating transaction:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const createdId = (transaction as { id?: string } | null)?.id;
+    if (tableId && createdId) {
+      const { error: tableOrderError } = await supabase
+        .from('table_orders')
+        .insert({
+          table_id: tableId,
+          transaction_id: createdId,
+          status: 'paid',
+          closed_at: new Date().toISOString(),
+        });
+      if (tableOrderError) {
+        console.error('Failed to link table order:', tableOrderError);
+      }
     }
 
     await dispatchLowStockAlertForSoldItems(supabase, businessId, items);
