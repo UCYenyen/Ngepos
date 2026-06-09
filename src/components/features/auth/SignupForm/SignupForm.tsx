@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import type { SignupFormState } from './types';
 
@@ -16,6 +17,7 @@ export function SignupForm() {
     password: '',
     loading: false,
     error: '',
+    awaitingConfirmation: false,
   });
 
   async function handleSignup(e: React.FormEvent) {
@@ -23,7 +25,7 @@ export function SignupForm() {
     setState((prev) => ({ ...prev, loading: true, error: '' }));
 
     try {
-      const { error } = await supabaseClient.auth.signUp({
+      const { data, error } = await supabaseClient.auth.signUp({
         email: state.email,
         password: state.password,
         options: {
@@ -32,7 +34,12 @@ export function SignupForm() {
       });
 
       if (error) throw error;
-      router.push('/onboarding');
+
+      if (data.session) {
+        router.push('/onboarding');
+      } else {
+        setState((prev) => ({ ...prev, awaitingConfirmation: true }));
+      }
     } catch (err) {
       setState((prev) => ({
         ...prev,
@@ -62,6 +69,22 @@ export function SignupForm() {
         loading: false,
       }));
     }
+  }
+
+  if (state.awaitingConfirmation) {
+    return (
+      <Card className="p-8 text-center">
+        <h1 className="text-2xl font-bold mb-2">Check your email</h1>
+        <p className="text-sm text-slate-600 mb-6">
+          We sent a verification link to{' '}
+          <span className="font-medium text-slate-900">{state.email}</span>. Click
+          the link to activate your account, then log in.
+        </p>
+        <Link href="/login" className={cn(buttonVariants(), 'w-full')}>
+          Go to login
+        </Link>
+      </Card>
+    );
   }
 
   return (

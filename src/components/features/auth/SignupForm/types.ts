@@ -3,4 +3,5 @@ export interface SignupFormState {
   password: string;
   loading: boolean;
   error: string;
+  awaitingConfirmation: boolean;
 }
