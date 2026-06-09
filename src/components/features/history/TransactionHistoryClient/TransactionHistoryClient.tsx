@@ -40,6 +40,27 @@ const STATUS_META: Record<PaymentStatus, { label: string; className: string }> =
     cancelled: { label: 'Batal', className: 'bg-error-light text-error' },
   };
 
+type DateFilter = 'today' | 'week' | 'all';
+
+const FILTERS: { key: DateFilter; label: string }[] = [
+  { key: 'today', label: 'Hari ini' },
+  { key: 'week', label: '7 hari' },
+  { key: 'all', label: 'Semua' },
+];
+
+function startOfTodayMs(): number {
+  const day = new Date();
+  day.setHours(0, 0, 0, 0);
+  return day.getTime();
+}
+
+function inRange(createdAt: string, filter: DateFilter): boolean {
+  if (filter === 'all') return true;
+  const time = new Date(createdAt).getTime();
+  if (filter === 'today') return time >= startOfTodayMs();
+  return time >= startOfTodayMs() - 6 * 86_400_000;
+}
+
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat('id-ID', {
     dateStyle: 'medium',
@@ -65,6 +86,7 @@ export function TransactionHistoryClient({
   const [transactions, setTransactions] = useState<HistoryTransaction[]>([]);
   const [status, setStatus] = useState<Status>('loading');
   const [selected, setSelected] = useState<HistoryTransaction | null>(null);
+  const [filter, setFilter] = useState<DateFilter>('today');
 
   useEffect(() => {
     let alive = true;
@@ -130,10 +152,51 @@ export function TransactionHistoryClient({
     );
   }
 
+  const filtered = transactions.filter((transaction) =>
+    inRange(transaction.created_at, filter)
+  );
+  const paidTotal = filtered
+    .filter((transaction) => transaction.payment_status === 'paid')
+    .reduce((sum, transaction) => sum + transaction.total, 0);
+  const activeLabel = FILTERS.find((item) => item.key === filter)?.label ?? '';
+
   return (
     <>
-      <div className="flex flex-col gap-2.5">
-        {transactions.map((transaction) => {
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5 rounded-xl border border-hairline bg-surface-1 px-4 py-2.5">
+          <span className="text-[12px] text-ink-muted">
+            Penjualan · {activeLabel} · {filtered.length} transaksi
+          </span>
+          <span className="font-mono text-xl font-bold tabular-nums text-ink">
+            {formatCurrency(paidTotal)}
+          </span>
+        </div>
+        <div className="flex gap-1.5">
+          {FILTERS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setFilter(item.key)}
+              className={cn(
+                'h-8 rounded-full border px-3 text-[12.5px] font-medium transition-colors',
+                filter === item.key
+                  ? 'border-ink bg-ink text-surface-1'
+                  : 'border-hairline bg-surface-1 text-ink-muted hover:bg-canvas hover:text-ink'
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-hairline px-5 py-10 text-center text-sm text-ink-muted">
+          Tidak ada transaksi pada periode ini.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {filtered.map((transaction) => {
           const statusMeta = STATUS_META[transaction.payment_status];
           const itemCount = transaction.transaction_items?.length ?? 0;
           return (
@@ -169,8 +232,9 @@ export function TransactionHistoryClient({
               </div>
             </button>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       <Dialog
         open={selected !== null}

@@ -13,6 +13,8 @@ const business: Business = {
   created_at: '2026-01-01T00:00:00.000Z',
 };
 
+const now = new Date().toISOString();
+
 const transactions = [
   {
     id: 'abcdef12-3456-7890-aaaa-bbbbbbbbbbbb',
@@ -24,7 +26,7 @@ const transactions = [
     total: 22000,
     payment_method: 'cash',
     payment_status: 'paid',
-    created_at: '2026-06-09T10:00:00.000Z',
+    created_at: now,
     transaction_items: [
       {
         id: 'i1',
@@ -35,7 +37,7 @@ const transactions = [
         quantity: 1,
         discount_amount: 0,
         subtotal: 20000,
-        created_at: '2026-06-09T10:00:00.000Z',
+        created_at: now,
       },
     ],
   },
@@ -61,6 +63,7 @@ describe('TransactionHistoryClient', () => {
       expect(screen.getByText('#ABCDEF12')).toBeInTheDocument();
     });
     expect(screen.getByText('Lunas')).toBeInTheDocument();
+    expect(screen.getByText(/1 transaksi/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('#ABCDEF12'));
 
