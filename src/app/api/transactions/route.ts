@@ -103,6 +103,7 @@ interface CreateTransactionRequest {
   payment_method: string;
   notes: string | null;
   tableId?: string | null;
+  tableOrderId?: string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
       payment_method,
       notes,
       tableId,
+      tableOrderId,
     }: CreateTransactionRequest = await request.json();
 
     if (
@@ -171,7 +173,19 @@ export async function POST(request: NextRequest) {
     }
 
     const createdId = (transaction as { id?: string } | null)?.id;
-    if (tableId && createdId) {
+    if (createdId && tableOrderId) {
+      const { error: settleError } = await supabase
+        .from('table_orders')
+        .update({
+          transaction_id: createdId,
+          status: 'paid',
+          closed_at: new Date().toISOString(),
+        })
+        .eq('id', tableOrderId);
+      if (settleError) {
+        console.error('Failed to settle table order:', settleError);
+      }
+    } else if (createdId && tableId) {
       const { error: tableOrderError } = await supabase
         .from('table_orders')
         .insert({

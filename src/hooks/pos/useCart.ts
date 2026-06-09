@@ -169,6 +169,24 @@ export function useCart(initialTaxRate: number = DEFAULT_TAX_RATE) {
     [calculateTotals]
   );
 
+  const loadItems = useCallback(
+    (items: CartItem[]) => {
+      setCart((prevCart) => {
+        const totals = calculateTotals(
+          items,
+          prevCart.discount_amount,
+          prevCart.tax_rate
+        );
+        return {
+          ...prevCart,
+          items,
+          ...totals,
+        };
+      });
+    },
+    [calculateTotals]
+  );
+
   const clear = useCallback(() => {
     setCart({
       items: [],
@@ -188,6 +206,7 @@ export function useCart(initialTaxRate: number = DEFAULT_TAX_RATE) {
     removeItem,
     setDiscount,
     setTaxRate,
+    loadItems,
     clear,
   };
 }

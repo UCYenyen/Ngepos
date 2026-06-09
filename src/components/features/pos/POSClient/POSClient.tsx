@@ -15,7 +15,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Business } from '@/types/business';
-import type { PaymentMethod, Table, Transaction } from '@/types/pos';
+import type {
+  OpenTableOrder,
+  PaymentMethod,
+  Table,
+  Transaction,
+} from '@/types/pos';
 import type { Product, ProductVariant } from '@/types/product';
 import type { ReceiptLineItem } from '../Receipt/types';
 
@@ -44,16 +49,38 @@ export default function POSClient({
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [tables, setTables] = useState<Table[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [openOrders, setOpenOrders] = useState<Record<string, OpenTableOrder>>(
+    {}
+  );
+  const [openTabsEnabled, setOpenTabsEnabled] = useState(false);
+  const [activeTableOrderId, setActiveTableOrderId] = useState<string | null>(
+    null
+  );
+  const [savingTab, setSavingTab] = useState(false);
 
   useEffect(() => {
     if (business.type !== 'fnb') return;
     let alive = true;
     (async () => {
       try {
-        const response = await fetch(`/api/tables?businessId=${businessId}`);
-        if (response.ok) {
-          const data = (await response.json()) as Table[];
+        const [tablesRes, ordersRes] = await Promise.all([
+          fetch(`/api/tables?businessId=${businessId}`),
+          fetch(`/api/table-orders?businessId=${businessId}`),
+        ]);
+        if (tablesRes.ok) {
+          const data = (await tablesRes.json()) as Table[];
           if (alive) setTables(data);
+        }
+        if (ordersRes.ok) {
+          const orders = (await ordersRes.json()) as OpenTableOrder[];
+          if (alive) {
+            setOpenTabsEnabled(true);
+            setOpenOrders(
+              Object.fromEntries(orders.map((order) => [order.table_id, order]))
+            );
+          }
+        } else if (ordersRes.status === 501 && alive) {
+          setOpenTabsEnabled(false);
         }
       } catch {
         if (alive) setTables([]);
@@ -63,6 +90,54 @@ export default function POSClient({
       alive = false;
     };
   }, [business.type, businessId]);
+
+  function selectTable(tableId: string | null) {
+    setSelectedTableId(tableId);
+    if (!tableId) {
+      setActiveTableOrderId(null);
+      return;
+    }
+    const order = openOrders[tableId];
+    if (order) {
+      cart.loadItems(order.items);
+      setActiveTableOrderId(order.id);
+    } else {
+      setActiveTableOrderId(null);
+    }
+  }
+
+  async function handleSaveTab() {
+    if (!selectedTableId || cart.cart.items.length === 0) return;
+    setSavingTab(true);
+    try {
+      const response = await fetch('/api/table-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableId: selectedTableId,
+          items: cart.cart.items,
+        }),
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error ?? 'Gagal menyimpan pesanan');
+      }
+      const order = (await response.json()) as OpenTableOrder;
+      setOpenOrders((prev) => ({ ...prev, [order.table_id]: order }));
+      toast.success('Pesanan meja disimpan');
+      cart.clear();
+      setSelectedTableId(null);
+      setActiveTableOrderId(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Gagal menyimpan pesanan'
+      );
+    } finally {
+      setSavingTab(false);
+    }
+  }
 
   function selectProduct(product: Product) {
     if (product.has_variants) {
@@ -122,6 +197,7 @@ export default function POSClient({
         payment_method: paymentMethod,
         notes: null,
         tableId: selectedTableId,
+        tableOrderId: activeTableOrderId,
       };
 
       const response = await fetch('/api/transactions', {
@@ -147,13 +223,23 @@ export default function POSClient({
       });
       setShowPayment(false);
       cart.clear();
+      if (selectedTableId) {
+        setOpenOrders((prev) => {
+          const next = { ...prev };
+          delete next[selectedTableId];
+          return next;
+        });
+      }
       setSelectedTableId(null);
+      setActiveTableOrderId(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Pembayaran gagal');
     } finally {
       setLoading(false);
     }
   }
+
+  const openTableIds = new Set(Object.keys(openOrders));
 
   return (
     <div className="flex h-full min-h-0">
@@ -163,7 +249,11 @@ export default function POSClient({
         businessType={business.type}
         tables={tables}
         selectedTableId={selectedTableId}
-        onSelectTable={setSelectedTableId}
+        openOrderTableIds={openTableIds}
+        openTabsEnabled={openTabsEnabled}
+        savingTab={savingTab}
+        onSelectTable={selectTable}
+        onSaveTab={handleSaveTab}
         onUpdateQuantity={cart.updateItemQuantity}
         onRemoveItem={cart.removeItem}
         onClear={cart.clear}

@@ -1,6 +1,13 @@
 'use client';
 
-import { Minus, Plus, ShoppingCart, Trash2, Wallet } from 'lucide-react';
+import {
+  BookmarkPlus,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Trash2,
+  Wallet,
+} from 'lucide-react';
 import { TableSelect } from '../TableSelect/TableSelect';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -12,7 +19,11 @@ interface CartProps {
   businessType: BusinessType;
   tables: Table[];
   selectedTableId: string | null;
+  openOrderTableIds: Set<string>;
+  openTabsEnabled: boolean;
+  savingTab: boolean;
   onSelectTable: (tableId: string | null) => void;
+  onSaveTab: () => void;
   onUpdateQuantity: (
     productId: string,
     variantId: string | undefined,
@@ -28,13 +39,22 @@ export function Cart({
   businessType,
   tables,
   selectedTableId,
+  openOrderTableIds,
+  openTabsEnabled,
+  savingTab,
   onSelectTable,
+  onSaveTab,
   onUpdateQuantity,
   onRemoveItem,
   onClear,
   onCheckout,
 }: CartProps) {
   const empty = cart.items.length === 0;
+  const showSaveTab =
+    openTabsEnabled &&
+    businessType === 'fnb' &&
+    Boolean(selectedTableId) &&
+    !empty;
   const itemDiscount = cart.items.reduce(
     (sum, item) => sum + item.discount_amount,
     0
@@ -68,6 +88,7 @@ export function Cart({
           <TableSelect
             tables={tables}
             selectedTableId={selectedTableId}
+            openTableIds={openOrderTableIds}
             onSelect={onSelectTable}
           />
         </div>
@@ -129,6 +150,17 @@ export function Cart({
             </span>
           </div>
         </div>
+        {showSaveTab && (
+          <button
+            type="button"
+            onClick={onSaveTab}
+            disabled={empty || savingTab}
+            className="btn-secondary mb-2.5 h-11 w-full gap-2 disabled:opacity-50"
+          >
+            <BookmarkPlus className="size-4.5" />
+            {savingTab ? 'Menyimpan…' : 'Simpan pesanan'}
+          </button>
+        )}
         <button
           type="button"
           onClick={onCheckout}

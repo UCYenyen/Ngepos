@@ -9,6 +9,7 @@ import type { Table, TableStatus } from '@/types/pos';
 interface TableSelectProps {
   tables: Table[];
   selectedTableId: string | null;
+  openTableIds?: Set<string>;
   onSelect: (tableId: string | null) => void;
 }
 
@@ -21,10 +22,12 @@ const STATUS_LABEL: Record<TableStatus, string> = {
 export function TableSelect({
   tables,
   selectedTableId,
+  openTableIds,
   onSelect,
 }: TableSelectProps) {
   const [open, setOpen] = useState(false);
   const selected = tables.find((table) => table.id === selectedTableId);
+  const hasOpenTab = (id: string): boolean => openTableIds?.has(id) ?? false;
 
   function choose(id: string | null) {
     onSelect(id);
@@ -82,7 +85,11 @@ export function TableSelect({
                 </span>
                 <span className="text-[11px] text-ink-muted">
                   {table.capacity ? `${table.capacity} kursi` : 'kapasitas —'} ·{' '}
-                  {STATUS_LABEL[table.status]}
+                  {hasOpenTab(table.id) ? (
+                    <span className="font-medium text-accent">Tab terbuka</span>
+                  ) : (
+                    STATUS_LABEL[table.status]
+                  )}
                 </span>
               </span>
               {table.id === selectedTableId && (

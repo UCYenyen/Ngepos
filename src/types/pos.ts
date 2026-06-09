@@ -60,12 +60,27 @@ export interface Table {
   created_at: string;
 }
 
+export type TableOrderStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'served'
+  | 'paid'
+  | 'cancelled';
+
 export interface TableOrder {
   id: string;
   table_id: string;
   transaction_id?: string;
-  status: 'pending' | 'in_progress' | 'served' | 'paid';
+  status: TableOrderStatus;
+  items?: CartItem[];
   opened_at: string;
   closed_at?: string;
   created_at: string;
+}
+
+export interface OpenTableOrder {
+  id: string;
+  table_id: string;
+  items: CartItem[];
+  opened_at: string;
 }
