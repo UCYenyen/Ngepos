@@ -11,7 +11,7 @@ ALTER TABLE table_orders
   ADD CONSTRAINT table_orders_status_check
   CHECK (status IN ('pending', 'in_progress', 'served', 'paid', 'cancelled'));
 
--- One fast lookup path for "the open tab on this table".
-CREATE INDEX IF NOT EXISTS idx_table_orders_open
+-- At most one open tab per table (and a fast lookup path for it).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_table_orders_open
   ON table_orders (table_id)
   WHERE status = 'in_progress';
