@@ -92,6 +92,34 @@ describe('TransactionHistoryClient', () => {
     expect(screen.getByText('#ABCDEF12')).toBeInTheDocument();
   });
 
+  it('refunds a transaction from the detail dialog', async () => {
+    global.fetch = vi.fn((url: string) => {
+      if (url.includes('/refund')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(transactions) });
+    }) as unknown as typeof fetch;
+
+    render(<TransactionHistoryClient businessId="b1" business={business} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#ABCDEF12')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('#ABCDEF12'));
+
+    const refundButton = await screen.findByRole('button', {
+      name: /refund transaksi/i,
+    });
+    fireEvent.click(refundButton);
+
+    expect(screen.getByText(/kembalikan stok/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /ya, refund/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/sudah direfund/i)).toBeInTheDocument();
+    });
+  });
+
   it('shows an empty state when there are no transactions', async () => {
     mockFetch([]);
 

@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import {
   Download,
   Receipt as ReceiptIcon,
   RefreshCw,
+  RotateCcw,
   Search,
 } from 'lucide-react';
 import {
@@ -97,6 +99,56 @@ export function TransactionHistoryClient({
   const [selected, setSelected] = useState<HistoryTransaction | null>(null);
   const [filter, setFilter] = useState<DateFilter>('today');
   const [query, setQuery] = useState('');
+  const [refundConfirm, setRefundConfirm] = useState(false);
+  const [restoreStock, setRestoreStock] = useState(true);
+  const [refunding, setRefunding] = useState(false);
+
+  async function handleRefund() {
+    if (!selected) return;
+    setRefunding(true);
+    try {
+      const response = await fetch(
+        `/api/transactions/${selected.id}/refund`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ restoreStock }),
+        }
+      );
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error ?? 'Gagal melakukan refund');
+      }
+      setTransactions((prev) =>
+        prev.map((transaction) =>
+          transaction.id === selected.id
+            ? { ...transaction, payment_status: 'cancelled' as const }
+            : transaction
+        )
+      );
+      setSelected((prev) =>
+        prev ? { ...prev, payment_status: 'cancelled' as const } : prev
+      );
+      setRefundConfirm(false);
+      toast.success(
+        restoreStock ? 'Transaksi direfund, stok dikembalikan' : 'Transaksi direfund'
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Gagal melakukan refund'
+      );
+    } finally {
+      setRefunding(false);
+    }
+  }
+
+  function closeDetail() {
+    setSelected(null);
+    setRefundConfirm(false);
+    setRestoreStock(true);
+  }
 
   useEffect(() => {
     let alive = true;
@@ -298,7 +350,7 @@ export function TransactionHistoryClient({
       <Dialog
         open={selected !== null}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) closeDetail();
         }}
       >
         <DialogContent className="sm:max-w-115">
@@ -306,13 +358,58 @@ export function TransactionHistoryClient({
             <DialogTitle className="sr-only">Detail transaksi</DialogTitle>
           </DialogHeader>
           {selected && (
-            <Receipt
-              transaction={selected}
-              items={toReceiptItems(selected.transaction_items ?? [])}
-              business={business}
-              closeLabel="Tutup"
-              onClose={() => setSelected(null)}
-            />
+            <>
+              <Receipt
+                transaction={selected}
+                items={toReceiptItems(selected.transaction_items ?? [])}
+                business={business}
+                closeLabel="Tutup"
+                onClose={closeDetail}
+              />
+              {selected.payment_status === 'cancelled' ? (
+                <p className="mt-1 rounded-lg bg-surface-2 px-3 py-2.5 text-center text-[12.5px] text-ink-muted print:hidden">
+                  Transaksi ini sudah direfund.
+                </p>
+              ) : refundConfirm ? (
+                <div className="mt-1 flex flex-col gap-3 rounded-lg border border-hairline p-3.5 print:hidden">
+                  <label className="flex items-center gap-2.5 text-[13px] text-ink">
+                    <input
+                      type="checkbox"
+                      checked={restoreStock}
+                      onChange={(event) => setRestoreStock(event.target.checked)}
+                      className="size-4 accent-accent"
+                    />
+                    Kembalikan stok ke inventaris
+                  </label>
+                  <div className="flex gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setRefundConfirm(false)}
+                      className="btn-secondary h-10 flex-1"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRefund}
+                      disabled={refunding}
+                      className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-error font-medium text-surface-1 transition-colors hover:bg-error/90 disabled:opacity-50"
+                    >
+                      {refunding ? 'Memproses…' : 'Ya, refund'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRefundConfirm(true)}
+                  className="mt-1 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-hairline font-medium text-error transition-colors hover:bg-error-light print:hidden"
+                >
+                  <RotateCcw className="size-4" />
+                  Refund transaksi
+                </button>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
