@@ -5,7 +5,7 @@ import { supabaseClient } from '@/lib/supabase';
 
 const BUCKET = 'business-assets';
 
-export type AssetKind = 'logo' | 'qris';
+export type AssetKind = 'logo' | 'qris' | 'product';
 
 interface UseAssetUploadResult {
   uploading: boolean;

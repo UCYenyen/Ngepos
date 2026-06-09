@@ -354,6 +354,7 @@ export function ProductsClient({ businessId, maxProducts }: ProductsClientProps)
         onOpenChange={setSheetOpen}
         product={editingProduct}
         categories={categories}
+        businessId={businessId}
         saving={saving}
         onSubmit={handleProductSubmit}
       />

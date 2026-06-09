@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { Layers, Pencil, Trash2 } from 'lucide-react';
 import { CategoryBadge } from '../CategoryBadge/CategoryBadge';
 import { formatCurrency } from '@/lib/format';
@@ -48,7 +49,17 @@ export function ProductsTable({
             return (
               <tr key={product.id} className="border-t border-hairline-soft">
                 <Td>
-                  <div className="size-9 rounded-md bg-surface-2" />
+                  <div className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-surface-2">
+                    {product.image_url ? (
+                      <Image
+                        src={product.image_url}
+                        alt={product.name}
+                        width={36}
+                        height={36}
+                        className="size-full object-cover"
+                      />
+                    ) : null}
+                  </div>
                 </Td>
                 <Td>
                   <div className="flex items-center gap-2">

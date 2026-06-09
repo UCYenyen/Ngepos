@@ -9,6 +9,7 @@ export interface ProductFormValues {
   has_variants: boolean;
   stock_qty: number;
   low_stock_threshold: number | null;
+  image_url: string | null;
 }
 
 export interface ProductSheetProps {
@@ -16,6 +17,7 @@ export interface ProductSheetProps {
   onOpenChange: (open: boolean) => void;
   product: Product | null;
   categories: Category[];
+  businessId: string;
   saving: boolean;
   onSubmit: (values: ProductFormValues) => void;
 }

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { Upload } from 'lucide-react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
+import Image from 'next/image';
+import { toast } from 'sonner';
+import { Package, Upload } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -11,6 +13,7 @@ import {
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { VariantEditor } from '../VariantEditor/VariantEditor';
+import { useAssetUpload } from '@/hooks/business/useAssetUpload';
 import type { Category, Product } from '@/types/product';
 import type { ProductFormValues, ProductSheetProps } from './types';
 
@@ -22,6 +25,7 @@ export function ProductSheet({
   onOpenChange,
   product,
   categories,
+  businessId,
   saving,
   onSubmit,
 }: ProductSheetProps) {
@@ -32,6 +36,7 @@ export function ProductSheet({
           key={product?.id ?? 'new'}
           product={product}
           categories={categories}
+          businessId={businessId}
           saving={saving}
           onCancel={() => onOpenChange(false)}
           onSubmit={onSubmit}
@@ -44,6 +49,7 @@ export function ProductSheet({
 interface ProductSheetFormProps {
   product: Product | null;
   categories: Category[];
+  businessId: string;
   saving: boolean;
   onCancel: () => void;
   onSubmit: (values: ProductFormValues) => void;
@@ -52,10 +58,15 @@ interface ProductSheetFormProps {
 function ProductSheetForm({
   product,
   categories,
+  businessId,
   saving,
   onCancel,
   onSubmit,
 }: ProductSheetFormProps) {
+  const { uploading, upload } = useAssetUpload();
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    product?.image_url ?? null
+  );
   const [name, setName] = useState(product?.name ?? '');
   const [sku, setSku] = useState(product?.sku ?? '');
   const [price, setPrice] = useState(product?.price ?? 0);
@@ -69,6 +80,18 @@ function ProductSheetForm({
 
   const valid = name.trim().length > 0 && price >= 0;
 
+  async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const url = await upload(file, businessId, 'product');
+    if (!url) {
+      toast.error('Gagal mengunggah foto');
+      return;
+    }
+    setImageUrl(url);
+  }
+
   function handleSubmit() {
     if (!valid) return;
     onSubmit({
@@ -81,6 +104,7 @@ function ProductSheetForm({
       stock_qty: trackStock ? stockQty : 0,
       low_stock_threshold:
         trackStock && lowThreshold !== '' ? Number(lowThreshold) : null,
+      image_url: imageUrl,
     });
   }
 
@@ -94,17 +118,37 @@ function ProductSheetForm({
 
       <div className="flex-1 overflow-auto px-5 py-5">
         <div className="flex flex-col gap-5">
-          <Field label="Foto produk">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-ink">Foto produk</span>
             <div className="flex items-center gap-3">
-              <div className="size-18 shrink-0 rounded-xl bg-surface-2" />
-              <div className="flex flex-1 flex-col items-center gap-1.5 rounded-xl border border-dashed border-hairline px-4 py-3.5 text-center opacity-70">
+              <div className="flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-2">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    alt="Foto produk"
+                    width={72}
+                    height={72}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <Package className="size-6 text-ink-subtle" />
+                )}
+              </div>
+              <label className="flex flex-1 cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-dashed border-hairline px-4 py-3.5 text-center transition-colors hover:border-ink-subtle">
                 <Upload className="size-4 text-ink-subtle" />
                 <span className="text-[12px] text-ink-muted">
-                  Unggah foto segera hadir
+                  {uploading ? 'Mengunggah…' : 'Unggah foto (PNG/JPG)'}
                 </span>
-              </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={handleImageChange}
+                />
+              </label>
             </div>
-          </Field>
+          </div>
 
           <Field label="Nama produk">
             <input
