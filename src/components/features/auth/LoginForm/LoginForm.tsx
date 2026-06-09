@@ -29,7 +29,7 @@ export function LoginForm() {
       });
 
       if (error) throw error;
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       setState((prev) => ({
         ...prev,

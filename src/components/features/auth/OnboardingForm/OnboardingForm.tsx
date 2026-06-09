@@ -76,7 +76,7 @@ export function OnboardingForm() {
         payment_provider: 'manual',
       });
 
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       setState((prev) => ({
         ...prev,

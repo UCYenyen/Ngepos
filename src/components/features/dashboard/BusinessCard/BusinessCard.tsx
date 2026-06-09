@@ -59,7 +59,7 @@ export function BusinessCard({
           Aktif
         </span>
         <Link
-          href={`/${id}/pos`}
+          href={`/dashboard/${id}/pos`}
           className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-surface-1 px-3 py-1.5 text-[13px] font-medium text-ink transition-colors hover:bg-canvas"
         >
           Buka

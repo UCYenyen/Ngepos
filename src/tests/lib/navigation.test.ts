@@ -92,19 +92,19 @@ describe('getNavItems', () => {
       features: proFeatures,
     });
 
-    expect(items.find((item) => item.key === 'pos')?.href).toBe('/biz-42/pos');
+    expect(items.find((item) => item.key === 'pos')?.href).toBe('/dashboard/biz-42/pos');
     expect(items.find((item) => item.key === 'inventory')?.href).toBe(
-      '/biz-42/inventory'
+      '/dashboard/biz-42/inventory'
     );
-    expect(items.find((item) => item.key === 'staff')?.href).toBe('/biz-42/staff');
+    expect(items.find((item) => item.key === 'staff')?.href).toBe('/dashboard/biz-42/staff');
     expect(items.find((item) => item.key === 'analytics')?.href).toBe(
-      '/biz-42/analytics'
+      '/dashboard/biz-42/analytics'
     );
     expect(items.find((item) => item.key === 'reports')?.href).toBe(
-      '/biz-42/reports'
+      '/dashboard/biz-42/reports'
     );
     expect(items.find((item) => item.key === 'settings')?.href).toBe(
-      '/biz-42/settings'
+      '/dashboard/biz-42/settings'
     );
   });
 });

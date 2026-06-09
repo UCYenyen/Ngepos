@@ -30,7 +30,7 @@ export default async function TablesPage({ params }: TablesPageProps) {
   const role = member.role as UserRole;
 
   if (typedBusiness.type !== 'fnb') {
-    redirect(`/${businessId}/pos`);
+    redirect(`/dashboard/${businessId}/pos`);
   }
 
   const features = await getBusinessPlanFeatures(businessId);

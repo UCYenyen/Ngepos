@@ -105,7 +105,7 @@ export function SettingsClient({
       });
       if (!response.ok) throw new Error();
       toast.success('Bisnis dihapus');
-      router.push('/');
+      router.push('/dashboard');
     } catch {
       toast.error('Gagal menghapus bisnis');
       setDeleting(false);

@@ -52,7 +52,7 @@ export function BusinessSwitcher({ current, businesses }: BusinessSwitcherProps)
             <button
               key={business.id}
               type="button"
-              onClick={() => go(`/${business.id}/pos`)}
+              onClick={() => go(`/dashboard/${business.id}/pos`)}
               className={cn(
                 'flex w-full items-center gap-2.5 rounded-md p-2 text-left transition-colors hover:bg-surface-2',
                 active && 'bg-surface-2'

@@ -130,7 +130,7 @@ export function ProductSelector({
                   Tambahkan produk dulu untuk mulai bertransaksi.
                 </p>
                 <Link
-                  href={`/${businessId}/products`}
+                  href={`/dashboard/${businessId}/products`}
                   className="btn-secondary mt-1"
                 >
                   Kelola produk

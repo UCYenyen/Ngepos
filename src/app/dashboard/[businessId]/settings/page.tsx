@@ -3,15 +3,15 @@ import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
 import { canAccessBusinessSettings } from '@/lib/permissions';
 import { PageShell } from '@/components/common/PageShell/PageShell';
 import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
-import { ReportSettings } from '@/components/features/settings/ReportSettings/ReportSettings';
-import type { Business } from '@/types/business';
+import { SettingsClient } from '@/components/features/settings/SettingsClient/SettingsClient';
+import type { Business, UserRole } from '@/types/business';
 
 export const metadata: Metadata = {
-  title: 'Settings - Ngepos',
-  description: 'Business settings and automated report configuration',
+  title: 'Pengaturan - Ngepos',
+  description: 'Kelola profil bisnis, pembayaran QRIS, dan laporan otomatis',
   openGraph: {
-    title: 'Settings - Ngepos',
-    description: 'Business settings and automated report configuration',
+    title: 'Pengaturan - Ngepos',
+    description: 'Kelola profil bisnis, pembayaran QRIS, dan laporan otomatis',
     url: 'https://ngepos.com/settings',
     siteName: 'Ngepos',
   },
@@ -26,26 +26,32 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
+  const role = member.role as UserRole;
 
-  if (!canAccessBusinessSettings(member.role)) {
+  if (!canAccessBusinessSettings(role)) {
     return (
-      <PageShell title="Settings" subtitle={typedBusiness.name}>
+      <PageShell
+        title="Pengaturan"
+        subtitle="Kelola profil bisnis, pembayaran, dan preferensi."
+      >
         <NoticeCard
-          title="Access denied"
-          description="Only the business owner can manage settings."
+          title="Akses ditolak"
+          description="Hanya pemilik bisnis yang dapat mengelola pengaturan."
         />
       </PageShell>
     );
   }
 
   const features = await getBusinessPlanFeatures(businessId);
-  const planHasAutomatedReports = features.automatedReports;
 
   return (
-    <PageShell title="Settings" subtitle={typedBusiness.name}>
-      <ReportSettings
-        businessId={businessId}
-        planHasAutomatedReports={planHasAutomatedReports}
+    <PageShell
+      title="Pengaturan"
+      subtitle="Kelola profil bisnis, pembayaran, dan preferensi."
+    >
+      <SettingsClient
+        business={typedBusiness}
+        planHasAutomatedReports={features.automatedReports}
       />
     </PageShell>
   );

@@ -90,7 +90,7 @@ export function TableDrawer({
 
               <button
                 type="button"
-                onClick={() => router.push(`/${businessId}/pos`)}
+                onClick={() => router.push(`/dashboard/${businessId}/pos`)}
                 className="btn-accent h-11 w-full gap-2"
               >
                 <ArrowRight className="size-4" />

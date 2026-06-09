@@ -304,7 +304,7 @@ export function ExportReports({ businessId, businessName }: ExportReportsProps) 
             Kirim ringkasan ini otomatis tiap tanggal 1 via Email atau WhatsApp.
           </span>
           <Link
-            href={`/${businessId}/settings`}
+            href={`/dashboard/${businessId}/settings`}
             className="flex items-center gap-1.5 text-[13.5px] font-semibold text-accent"
           >
             Atur di Pengaturan

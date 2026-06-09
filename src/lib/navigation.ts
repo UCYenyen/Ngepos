@@ -43,7 +43,7 @@ export function getNavItems({
   features,
 }: GetNavItemsParams): NavItem[] {
   const items: NavItem[] = [];
-  const to = (key: NavItemKey): string => `/${businessId}/${key}`;
+  const to = (key: NavItemKey): string => `/dashboard/${businessId}/${key}`;
 
   if (canProcessTransactions(role)) {
     items.push({ key: 'pos', label: 'POS', href: to('pos'), locked: false });
