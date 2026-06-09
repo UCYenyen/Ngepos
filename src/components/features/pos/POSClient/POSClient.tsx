@@ -8,6 +8,7 @@ import { Cart } from '../Cart/Cart';
 import { PaymentForm } from '../PaymentForm/PaymentForm';
 import { Receipt } from '../Receipt/Receipt';
 import { VariantPicker } from '../VariantPicker/VariantPicker';
+import { ParkedOrdersDialog } from '../ParkedOrdersDialog/ParkedOrdersDialog';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
 import type { Business } from '@/types/business';
 import type {
   OpenTableOrder,
+  ParkedOrder,
   PaymentMethod,
   Table,
   Transaction,
@@ -57,6 +59,93 @@ export default function POSClient({
     null
   );
   const [savingTab, setSavingTab] = useState(false);
+  const [parkedOrders, setParkedOrders] = useState<ParkedOrder[]>([]);
+  const [parkedEnabled, setParkedEnabled] = useState(false);
+  const [holdOpen, setHoldOpen] = useState(false);
+  const [holdLabel, setHoldLabel] = useState('');
+  const [holding, setHolding] = useState(false);
+  const [recallOpen, setRecallOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const response = await fetch(
+          `/api/parked-orders?businessId=${businessId}`
+        );
+        if (response.ok) {
+          const data = (await response.json()) as ParkedOrder[];
+          if (alive) {
+            setParkedEnabled(true);
+            setParkedOrders(data);
+          }
+        } else if (response.status === 501 && alive) {
+          setParkedEnabled(false);
+        }
+      } catch {
+        if (alive) setParkedEnabled(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [businessId]);
+
+  async function handleHold() {
+    if (cart.cart.items.length === 0) return;
+    setHolding(true);
+    try {
+      const response = await fetch('/api/parked-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          label: holdLabel,
+          items: cart.cart.items,
+        }),
+      });
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error ?? 'Gagal menahan pesanan');
+      }
+      const order = (await response.json()) as ParkedOrder;
+      setParkedOrders((prev) => [order, ...prev]);
+      toast.success('Pesanan ditahan');
+      cart.clear();
+      setHoldOpen(false);
+      setHoldLabel('');
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Gagal menahan pesanan'
+      );
+    } finally {
+      setHolding(false);
+    }
+  }
+
+  async function removeParked(id: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/parked-orders/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error();
+      setParkedOrders((prev) => prev.filter((order) => order.id !== id));
+      return true;
+    } catch {
+      toast.error('Gagal menghapus pesanan ditahan');
+      return false;
+    }
+  }
+
+  function handleRecall(order: ParkedOrder) {
+    cart.loadItems(order.items);
+    setSelectedTableId(null);
+    setActiveTableOrderId(null);
+    setRecallOpen(false);
+    removeParked(order.id);
+  }
 
   useEffect(() => {
     if (business.type !== 'fnb') return;
@@ -252,8 +341,12 @@ export default function POSClient({
         openOrderTableIds={openTableIds}
         openTabsEnabled={openTabsEnabled}
         savingTab={savingTab}
+        parkedEnabled={parkedEnabled}
+        parkedCount={parkedOrders.length}
         onSelectTable={selectTable}
         onSaveTab={handleSaveTab}
+        onHold={() => setHoldOpen(true)}
+        onOpenParked={() => setRecallOpen(true)}
         onSetDiscount={cart.setDiscount}
         onUpdateQuantity={cart.updateItemQuantity}
         onRemoveItem={cart.removeItem}
@@ -306,6 +399,52 @@ export default function POSClient({
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={holdOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setHoldOpen(false);
+            setHoldLabel('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-100">
+          <DialogHeader>
+            <DialogTitle>Tahan pesanan</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <p className="text-[13px] text-ink-muted">
+              Simpan pesanan ini sementara dan lanjutkan nanti.
+            </p>
+            <input
+              value={holdLabel}
+              onChange={(event) => setHoldLabel(event.target.value)}
+              placeholder="Nama pelanggan (opsional)"
+              aria-label="Label pesanan"
+              className="h-11 w-full rounded-md border border-hairline bg-surface-1 px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <button
+              type="button"
+              onClick={handleHold}
+              disabled={holding}
+              className="btn-accent h-11 w-full disabled:opacity-50"
+            >
+              {holding ? 'Menahan…' : 'Tahan pesanan'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ParkedOrdersDialog
+        open={recallOpen}
+        orders={parkedOrders}
+        onOpenChange={(open) => {
+          if (!open) setRecallOpen(false);
+        }}
+        onRecall={handleRecall}
+        onDiscard={(order) => removeParked(order.id)}
+      />
     </div>
   );
 }

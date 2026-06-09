@@ -2,7 +2,9 @@
 
 import {
   BookmarkPlus,
+  Inbox,
   Minus,
+  PauseCircle,
   Plus,
   ShoppingCart,
   Trash2,
@@ -22,8 +24,12 @@ interface CartProps {
   openOrderTableIds: Set<string>;
   openTabsEnabled: boolean;
   savingTab: boolean;
+  parkedEnabled: boolean;
+  parkedCount: number;
   onSelectTable: (tableId: string | null) => void;
   onSaveTab: () => void;
+  onHold: () => void;
+  onOpenParked: () => void;
   onSetDiscount: (amount: number) => void;
   onUpdateQuantity: (
     productId: string,
@@ -43,8 +49,12 @@ export function Cart({
   openOrderTableIds,
   openTabsEnabled,
   savingTab,
+  parkedEnabled,
+  parkedCount,
   onSelectTable,
   onSaveTab,
+  onHold,
+  onOpenParked,
   onSetDiscount,
   onUpdateQuantity,
   onRemoveItem,
@@ -57,6 +67,8 @@ export function Cart({
     businessType === 'fnb' &&
     Boolean(selectedTableId) &&
     !empty;
+  const showHold = parkedEnabled && !empty && !selectedTableId;
+  const showParkedButton = parkedEnabled && parkedCount > 0;
 
   return (
     <aside className="flex h-full w-95 shrink-0 flex-col border-l border-hairline bg-surface-1">
@@ -69,15 +81,27 @@ export function Cart({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClear}
-          disabled={empty}
-          aria-label="Kosongkan keranjang"
-          className="btn-icon size-8 text-ink-subtle hover:text-error disabled:opacity-40"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {showParkedButton && (
+            <button
+              type="button"
+              onClick={onOpenParked}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-hairline px-2.5 text-[12px] font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <Inbox className="size-3.5" />
+              Ditahan · {parkedCount}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={empty}
+            aria-label="Kosongkan keranjang"
+            className="btn-icon size-8 text-ink-subtle hover:text-error disabled:opacity-40"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
       </div>
 
       {businessType === 'fnb' && (
@@ -170,6 +194,17 @@ export function Cart({
           >
             <BookmarkPlus className="size-4.5" />
             {savingTab ? 'Menyimpan…' : 'Simpan pesanan'}
+          </button>
+        )}
+        {showHold && (
+          <button
+            type="button"
+            onClick={onHold}
+            disabled={empty}
+            className="btn-secondary mb-2.5 h-11 w-full gap-2 disabled:opacity-50"
+          >
+            <PauseCircle className="size-4.5" />
+            Tahan pesanan
           </button>
         )}
         <button

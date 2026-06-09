@@ -84,3 +84,11 @@ export interface OpenTableOrder {
   items: CartItem[];
   opened_at: string;
 }
+
+export interface ParkedOrder {
+  id: string;
+  business_id: string;
+  label: string | null;
+  items: CartItem[];
+  created_at: string;
+}
