@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell, ChevronDown, LogOut } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, UserRound } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Wordmark } from '@/components/layout/Wordmark/Wordmark';
@@ -90,7 +90,15 @@ export function AccountTopbar({ active = 'dashboard' }: AccountTopbarProps) {
               </p>
               <p className="truncate text-[11px] text-ink-muted">{email}</p>
             </div>
-            <div className="px-1.5 pb-1.5">
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2.5 rounded-md p-2 text-left text-sm font-medium text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+            >
+              <UserRound className="size-4" />
+              Akun
+            </Link>
+            <div className="px-1.5 py-1.5">
               <ThemeToggle />
             </div>
             <div className="my-1 border-t border-hairline-soft" />
