@@ -2,7 +2,14 @@
 
 import { Check, Mail, MessageCircle, Plus, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
+import type { PaymentMethod } from '@/types/pos';
 import type { ReceiptProps } from './types';
+
+const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cash: 'Tunai',
+  qris: 'QRIS',
+  gateway: 'Kartu / Online',
+};
 
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat('id-ID', {
@@ -103,6 +110,10 @@ export function Receipt({
               {formatCurrency(transaction.total)}
             </span>
           </div>
+          <ReceiptRow
+            label="Metode"
+            value={PAYMENT_LABEL[transaction.payment_method]}
+          />
           {amountReceived != null && (
             <>
               <ReceiptRow label="Tunai" value={formatCurrency(amountReceived)} />
@@ -111,6 +122,9 @@ export function Receipt({
               )}
             </>
           )}
+        </div>
+        <div className="mt-3 border-t border-hairline pt-3 text-center text-[11px] text-ink-muted">
+          Terima kasih telah berbelanja
         </div>
       </div>
 
