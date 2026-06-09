@@ -7,6 +7,7 @@ import { ProductSelector } from '../ProductSelector/ProductSelector';
 import { Cart } from '../Cart/Cart';
 import { PaymentForm } from '../PaymentForm/PaymentForm';
 import { Receipt } from '../Receipt/Receipt';
+import { VariantPicker } from '../VariantPicker/VariantPicker';
 import {
   Dialog,
   DialogContent,
@@ -14,8 +15,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Business } from '@/types/business';
-import type { CartItem, PaymentMethod, Transaction } from '@/types/pos';
-import type { Product } from '@/types/product';
+import type { PaymentMethod, Transaction } from '@/types/pos';
+import type { Product, ProductVariant } from '@/types/product';
 import type { ReceiptLineItem } from '../Receipt/types';
 
 interface POSClientProps {
@@ -39,16 +40,32 @@ export default function POSClient({
   const [showPayment, setShowPayment] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [variantProduct, setVariantProduct] = useState<Product | null>(null);
 
-  function addProduct(product: Product) {
-    const item: CartItem = {
+  function selectProduct(product: Product) {
+    if (product.has_variants) {
+      setVariantProduct(product);
+      return;
+    }
+    cart.addItem({
       product_id: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,
       discount_amount: 0,
-    };
-    cart.addItem(item);
+    });
+  }
+
+  function addVariant(product: Product, variant: ProductVariant) {
+    cart.addItem({
+      product_id: product.id,
+      variant_id: variant.id,
+      name: `${product.name} · ${variant.name}`,
+      price: product.price + variant.price_modifier,
+      quantity: 1,
+      discount_amount: 0,
+    });
+    setVariantProduct(null);
   }
 
   async function handlePayment(
@@ -111,7 +128,7 @@ export default function POSClient({
 
   return (
     <div className="flex h-full min-h-0">
-      <ProductSelector businessId={businessId} onSelectProduct={addProduct} />
+      <ProductSelector businessId={businessId} onSelectProduct={selectProduct} />
       <Cart
         cart={cart.cart}
         businessType={business.type}
@@ -119,6 +136,14 @@ export default function POSClient({
         onRemoveItem={cart.removeItem}
         onClear={cart.clear}
         onCheckout={() => setShowPayment(true)}
+      />
+
+      <VariantPicker
+        product={variantProduct}
+        onPick={addVariant}
+        onOpenChange={(open) => {
+          if (!open) setVariantProduct(null);
+        }}
       />
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
