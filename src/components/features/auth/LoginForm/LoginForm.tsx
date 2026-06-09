@@ -90,7 +90,15 @@ export function LoginForm() {
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-ink">Password</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] font-medium text-ink">Password</span>
+            <Link
+              href="/forgot-password"
+              className="text-[12.5px] font-medium text-ink-muted transition-colors hover:text-accent"
+            >
+              Lupa password?
+            </Link>
+          </div>
           <input
             type="password"
             required
