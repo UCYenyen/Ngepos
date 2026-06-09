@@ -63,7 +63,7 @@ export function PaymentForm({
         <PaymentMethodCard
           icon={CreditCard}
           label="Gateway"
-          sublabel="Midtrans"
+          sublabel="Xendit"
           active={method === 'gateway'}
           locked={!paymentGatewayEnabled}
           onSelect={() => setMethod('gateway')}

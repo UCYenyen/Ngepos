@@ -383,8 +383,8 @@ export function BillingClient() {
                 </div>
                 <p className="flex items-start gap-2 text-[12px] text-ink-muted">
                   <Building2 className="mt-0.5 size-3.5 shrink-0" />
-                  Pembayaran gateway (Midtrans/Xendit) akan tersedia untuk
-                  langganan otomatis.
+                  Pembayaran gateway (Xendit) akan tersedia untuk langganan
+                  otomatis.
                 </p>
               </div>
             </div>

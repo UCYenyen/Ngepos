@@ -119,7 +119,7 @@ const FAQS = [
   },
   {
     q: 'Metode pembayaran apa saja yang didukung?',
-    a: 'Tunai, QRIS statis, dan payment gateway (Midtrans/Xendit) untuk paket Pro & Enterprise.',
+    a: 'Tunai, QRIS statis, dan payment gateway (Xendit) untuk paket Pro & Enterprise.',
   },
   {
     q: 'Bagaimana laporan WhatsApp bekerja?',

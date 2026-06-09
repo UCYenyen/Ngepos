@@ -1,8 +1,12 @@
 // src/types/auth.ts
 export type SubscriptionPlan = 'starter' | 'pro' | 'enterprise';
 export type BillingCycle = 'monthly' | 'yearly';
-export type SubscriptionStatus = 'active' | 'past_due' | 'cancelled';
-export type PaymentProvider = 'midtrans' | 'xendit' | 'manual';
+export type SubscriptionStatus =
+  | 'active'
+  | 'past_due'
+  | 'cancelled'
+  | 'pending';
+export type PaymentProvider = 'xendit' | 'manual';
 
 export interface User {
   id: string;
