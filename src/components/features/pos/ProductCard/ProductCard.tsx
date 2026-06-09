@@ -6,12 +6,16 @@ import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/product';
 import type { ProductCardProps } from './types';
 
-function isLowStock(product: Product): boolean {
-  return (
-    product.track_stock &&
-    product.low_stock_threshold != null &&
-    (product.stock_qty ?? 0) <= product.low_stock_threshold
-  );
+type StockState = 'ok' | 'low' | 'out';
+
+function stockStateOf(product: Product): StockState {
+  if (!product.track_stock) return 'ok';
+  const qty = product.stock_qty ?? 0;
+  if (qty <= 0) return 'out';
+  if (product.low_stock_threshold != null && qty <= product.low_stock_threshold) {
+    return 'low';
+  }
+  return 'ok';
 }
 
 export function ProductCard({
@@ -19,7 +23,7 @@ export function ProductCard({
   categoryColor,
   onSelect,
 }: ProductCardProps) {
-  const low = isLowStock(product);
+  const stock = stockStateOf(product);
 
   return (
     <button
@@ -39,7 +43,12 @@ export function ProductCard({
             />
           ) : null}
         </div>
-        {low && (
+        {stock === 'out' && (
+          <span className="badge badge-error absolute left-1.5 top-1.5 h-4.5 px-1.5 text-[10px]">
+            Habis
+          </span>
+        )}
+        {stock === 'low' && (
           <span className="badge badge-error absolute left-1.5 top-1.5 h-4.5 px-1.5 text-[10px]">
             Menipis
           </span>
