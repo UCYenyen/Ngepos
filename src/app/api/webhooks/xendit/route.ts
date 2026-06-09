@@ -1,43 +1,57 @@
-import { createServerClient } from '@/lib/supabase';
-import { cookies } from 'next/headers';
+import { createAdminClient } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 
-const XENDIT_KEY = process.env.XENDIT_SECRET_KEY || '';
+const CALLBACK_TOKEN = process.env.XENDIT_CALLBACK_TOKEN || '';
 
-function verifyXenditSignature(payload: string, signature: string): boolean {
-  const hash = crypto.createHmac('sha256', XENDIT_KEY).update(payload).digest('hex');
-  return hash === signature;
-}
+// Xendit invoice statuses -> our subscription_status.
+const SUBSCRIPTION_STATUS: Record<string, string> = {
+  PAID: 'active',
+  SETTLED: 'active',
+  EXPIRED: 'cancelled',
+  PENDING: 'pending',
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.text();
-    const signature = request.headers.get('x-xendit-webhook-token') || '';
-
-    if (!verifyXenditSignature(payload, signature)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    const token = request.headers.get('x-callback-token') || '';
+    if (!CALLBACK_TOKEN || token !== CALLBACK_TOKEN) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const body = JSON.parse(payload);
-    const { reference_id, status } = body;
-
-    const cookieStore = await cookies();
-    const supabase = createServerClient(cookieStore);
-
-    const statusMap: Record<string, string> = {
-      COMPLETED: 'active',
-      PENDING: 'pending',
-      FAILED: 'cancelled',
-      EXPIRED: 'cancelled',
+    const body = (await request.json()) as {
+      external_id?: string;
+      status?: string;
     };
 
-    const newStatus = statusMap[status] || 'pending';
+    const externalId = body.external_id;
+    const status = body.status ?? '';
+    if (!externalId) {
+      return NextResponse.json({ error: 'Missing external_id' }, { status: 400 });
+    }
 
-    await supabase
+    const newStatus = SUBSCRIPTION_STATUS[status] ?? 'pending';
+    const admin = createAdminClient();
+
+    const { data: subscription } = await admin
       .from('subscriptions')
       .update({ status: newStatus })
-      .eq('payment_reference', reference_id);
+      .eq('payment_reference', externalId)
+      .select('user_id')
+      .maybeSingle();
+
+    if (subscription) {
+      const invoiceStatus =
+        newStatus === 'active'
+          ? 'paid'
+          : newStatus === 'cancelled'
+            ? 'failed'
+            : 'pending';
+      await admin
+        .from('invoices')
+        .update({ status: invoiceStatus })
+        .eq('user_id', subscription.user_id)
+        .eq('status', 'pending');
+    }
 
     return NextResponse.json({ status: 'ok' });
   } catch (error) {

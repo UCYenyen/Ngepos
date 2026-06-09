@@ -1,4 +1,5 @@
 import { createServerClient, createAdminClient } from '@/lib/supabase';
+import { createXenditInvoice, isXenditConfigured } from '@/lib/xendit';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import type { SubscriptionPlan, BillingCycle } from '@/types/auth';
@@ -64,10 +65,85 @@ export async function POST(request: NextRequest) {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
+    const amount = invoiceAmount(plan, billingCycle);
+
     // Subscriptions have RLS insert/update WITH CHECK (false): writes must go
     // through the service-role client, not the caller's session.
     const admin = createAdminClient();
 
+    // Paid plan via Xendit: create a hosted invoice, park the subscription as
+    // 'pending', and let the Xendit webhook activate it on payment.
+    if (paymentProvider === 'xendit' && amount > 0) {
+      if (!isXenditConfigured()) {
+        return NextResponse.json(
+          { error: 'Xendit belum dikonfigurasi di server' },
+          { status: 400 }
+        );
+      }
+
+      const externalId = `sub-${user.id}-${Date.now()}`;
+      const origin = request.nextUrl.origin;
+      let invoice;
+      try {
+        invoice = await createXenditInvoice({
+          externalId,
+          amount,
+          payerEmail: user.email ?? '',
+          description: `Langganan Ngepos ${plan} (${billingCycle})`,
+          successRedirectUrl: `${origin}/billing?payment=success`,
+          failureRedirectUrl: `${origin}/billing?payment=failed`,
+        });
+      } catch (xenditError) {
+        console.error('Xendit invoice error:', xenditError);
+        return NextResponse.json(
+          { error: 'Gagal membuat tagihan Xendit' },
+          { status: 502 }
+        );
+      }
+
+      const { data: subscription, error: subscriptionError } = await admin
+        .from('subscriptions')
+        .upsert(
+          {
+            user_id: user.id,
+            plan: plan as SubscriptionPlan,
+            billing_cycle: billingCycle as BillingCycle,
+            status: 'pending',
+            period_start: now.toISOString(),
+            period_end: periodEnd.toISOString(),
+            payment_provider: 'xendit',
+            payment_reference: externalId,
+          },
+          { onConflict: 'user_id' }
+        )
+        .select()
+        .single();
+
+      if (subscriptionError || !subscription) {
+        console.error('Failed to upsert subscription:', subscriptionError);
+        return NextResponse.json(
+          { error: subscriptionError?.message ?? 'Failed to create subscription' },
+          { status: 500 }
+        );
+      }
+
+      await admin.from('invoices').insert({
+        user_id: user.id,
+        plan,
+        amount,
+        status: 'pending',
+        billing_cycle: billingCycle,
+        period_start: now.toISOString(),
+        period_end: periodEnd.toISOString(),
+      });
+
+      return NextResponse.json({
+        subscription,
+        checkoutUrl: invoice.invoiceUrl,
+      });
+    }
+
+    // Free plan or manual transfer: activate immediately.
     const { data: subscription, error: subscriptionError } = await admin
       .from('subscriptions')
       .upsert(
@@ -93,7 +169,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const amount = invoiceAmount(plan, billingCycle);
     if (amount > 0) {
       const { error: invoiceError } = await admin.from('invoices').insert({
         user_id: user.id,

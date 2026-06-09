@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (!subscription) {
+    if (!subscription || subscription.status !== 'active') {
       return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
     }
 

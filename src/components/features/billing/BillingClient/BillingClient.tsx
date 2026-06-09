@@ -119,6 +119,15 @@ export function BillingClient() {
     };
   }, []);
 
+  useEffect(() => {
+    const payment = new URLSearchParams(window.location.search).get('payment');
+    if (payment === 'success') {
+      toast.success('Pembayaran diterima. Paket aktif sebentar lagi.');
+    } else if (payment === 'failed') {
+      toast.error('Pembayaran dibatalkan atau gagal.');
+    }
+  }, []);
+
   async function choosePlan(target: PlanName) {
     if (target === plan || target === 'enterprise') return;
     setChanging(target);
@@ -129,14 +138,24 @@ export function BillingClient() {
         body: JSON.stringify({
           plan: target,
           billingCycle: 'monthly',
-          paymentProvider: 'manual',
+          paymentProvider: 'xendit',
         }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error ?? 'Gagal mengubah paket');
+      }
+      const data = (await response.json()) as { checkoutUrl?: string };
+      if (data.checkoutUrl) {
+        window.location.assign(data.checkoutUrl);
+        return;
+      }
       setPlan(target);
       toast.success(`Paket ${PLAN_META[target].label} aktif`);
-    } catch {
-      toast.error('Gagal mengubah paket');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal mengubah paket');
     } finally {
       setChanging(null);
     }
