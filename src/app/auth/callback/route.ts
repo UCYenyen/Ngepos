@@ -1,13 +1,7 @@
 import { createServerClient } from '@/lib/supabase';
+import { safeNext } from '@/lib/auth-redirect';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-
-function safeNext(value: string | null): string {
-  if (value && value.startsWith('/') && !value.startsWith('//')) {
-    return value;
-  }
-  return '/onboarding';
-}
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
