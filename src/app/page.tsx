@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { Landing } from '@/components/features/landing/Landing/Landing';
 
@@ -19,9 +18,5 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const user = await getCurrentUser();
 
-  if (user) {
-    redirect('/dashboard');
-  }
-
-  return <Landing />;
+  return <Landing isAuthenticated={Boolean(user)} />;
 }

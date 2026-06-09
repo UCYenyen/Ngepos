@@ -127,9 +127,12 @@ const FAQS = [
   },
 ];
 
-export function Landing() {
+export function Landing({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [annual, setAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState(0);
+
+  const startHref = isAuthenticated ? '/dashboard' : '/signup';
+  const planHref = isAuthenticated ? '/billing' : '/signup';
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -144,12 +147,24 @@ export function Landing() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="btn-tertiary h-9 px-4 text-sm">
-              Masuk
-            </Link>
-            <Link href="/signup" className="btn-accent h-9 px-4 text-sm">
-              Mulai gratis
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/dashboard"
+                className="btn-accent h-9 gap-2 px-4 text-sm"
+              >
+                Dashboard
+                <ArrowRight className="size-4" />
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="btn-tertiary h-9 px-4 text-sm">
+                  Masuk
+                </Link>
+                <Link href="/signup" className="btn-accent h-9 px-4 text-sm">
+                  Mulai gratis
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -168,8 +183,8 @@ export function Landing() {
             retail.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/signup" className="btn-accent h-12 px-6 text-base">
-              Mulai gratis
+            <Link href={startHref} className="btn-accent h-12 px-6 text-base">
+              {isAuthenticated ? 'Buka dashboard' : 'Mulai gratis'}
             </Link>
             <a href="#fitur" className="btn-secondary h-12 gap-2 px-6 text-base">
               <Play className="size-4" />
@@ -377,6 +392,7 @@ export function Landing() {
               price="Gratis"
               blurb="Untuk yang baru mulai."
               cta="Mulai gratis"
+              href={startHref}
               features={[
                 '1 bisnis',
                 '100 produk',
@@ -391,6 +407,7 @@ export function Landing() {
               popular
               blurb="Untuk bisnis yang berkembang."
               cta="Pilih Pro"
+              href={planHref}
               ctaAccent
               features={[
                 '5 bisnis',
@@ -406,6 +423,7 @@ export function Landing() {
               price="Hubungi"
               blurb="Untuk skala besar & multi-cabang."
               cta="Hubungi kami"
+              href="mailto:sales@ngepos.com?subject=Enterprise%20Ngepos"
               features={[
                 'Bisnis tak terbatas',
                 'Produk tak terbatas',
@@ -495,8 +513,8 @@ export function Landing() {
             <p className="text-lg text-surface-1/70">
               Mulai gratis hari ini. Setup hanya 5 menit.
             </p>
-            <Link href="/signup" className="btn-accent h-12 px-6 text-base">
-              Mulai gratis sekarang
+            <Link href={startHref} className="btn-accent h-12 px-6 text-base">
+              {isAuthenticated ? 'Buka dashboard' : 'Mulai gratis sekarang'}
             </Link>
           </div>
         </section>
@@ -650,6 +668,7 @@ function PricingCard({
   per,
   blurb,
   cta,
+  href,
   ctaAccent,
   popular,
   features,
@@ -659,6 +678,7 @@ function PricingCard({
   per?: string;
   blurb: string;
   cta: string;
+  href: string;
   ctaAccent?: boolean;
   popular?: boolean;
   features: string[];
@@ -686,7 +706,7 @@ function PricingCard({
         <span className="text-[13.5px] text-ink-muted">{blurb}</span>
       </div>
       <Link
-        href="/signup"
+        href={href}
         className={cn(ctaAccent ? 'btn-accent' : 'btn-secondary', 'w-full')}
       >
         {cta}
