@@ -77,7 +77,17 @@ export function BillingClient() {
         if (alive) setStatus('error');
         return;
       }
+      const payment = new URLSearchParams(window.location.search).get('payment');
       try {
+        // Returning from Xendit checkout: confirm payment server-side before
+        // reading the subscription (works on localhost too, where the inbound
+        // webhook can't reach the app).
+        if (payment === 'success') {
+          await fetch('/api/subscriptions/verify', { method: 'POST' }).catch(
+            () => {}
+          );
+        }
+
         const [{ data: sub }, { data: members }] = await Promise.all([
           supabaseClient
             .from('subscriptions')
@@ -110,6 +120,16 @@ export function BillingClient() {
         setInvoices((invoiceRows as InvoiceRow[] | null) ?? []);
 
         setStatus('ready');
+
+        if (alive && payment === 'success') {
+          if (active) {
+            toast.success('Pembayaran berhasil — paket kamu aktif.');
+          } else {
+            toast('Pembayaran sedang diproses. Coba refresh sebentar lagi.');
+          }
+        } else if (alive && payment === 'failed') {
+          toast.error('Pembayaran dibatalkan atau gagal.');
+        }
       } catch {
         if (alive) setStatus('error');
       }
@@ -117,15 +137,6 @@ export function BillingClient() {
     return () => {
       alive = false;
     };
-  }, []);
-
-  useEffect(() => {
-    const payment = new URLSearchParams(window.location.search).get('payment');
-    if (payment === 'success') {
-      toast.success('Pembayaran diterima. Paket aktif sebentar lagi.');
-    } else if (payment === 'failed') {
-      toast.error('Pembayaran dibatalkan atau gagal.');
-    }
   }, []);
 
   async function choosePlan(target: PlanName) {

@@ -66,3 +66,25 @@ export async function createXenditInvoice(
     status: data.status,
   };
 }
+
+// Looks up an invoice by the external_id we generated. Returns its Xendit
+// status (PAID / SETTLED / PENDING / EXPIRED) or null. Outbound call, so it
+// works from localhost where the inbound webhook can't reach the app.
+export async function getXenditInvoiceStatus(
+  externalId: string
+): Promise<string | null> {
+  const secretKey = process.env.XENDIT_SECRET_KEY;
+  if (!secretKey) return null;
+
+  const auth = Buffer.from(`${secretKey}:`).toString('base64');
+  const response = await fetch(
+    `${XENDIT_INVOICE_API}?external_id=${encodeURIComponent(externalId)}`,
+    { headers: { Authorization: `Basic ${auth}` } }
+  );
+
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as Array<{ status?: string }>;
+  if (!Array.isArray(data) || data.length === 0) return null;
+  return data[0].status ?? null;
+}

@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createXenditInvoice, isXenditConfigured } from '@/lib/xendit';
+import {
+  createXenditInvoice,
+  getXenditInvoiceStatus,
+  isXenditConfigured,
+} from '@/lib/xendit';
 
 const params = {
   externalId: 'sub-1',
@@ -71,5 +75,28 @@ describe('xendit helper', () => {
     ) as unknown as typeof fetch;
 
     await expect(createXenditInvoice(params)).rejects.toThrow(/400/);
+  });
+
+  it('getXenditInvoiceStatus returns the first invoice status', async () => {
+    process.env.XENDIT_SECRET_KEY = 'xnd_test_abc';
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([{ status: 'PAID' }]),
+      })
+    ) as unknown as typeof fetch;
+
+    await expect(getXenditInvoiceStatus('sub-1')).resolves.toBe('PAID');
+  });
+
+  it('getXenditInvoiceStatus returns null when not configured or empty', async () => {
+    process.env.XENDIT_SECRET_KEY = '';
+    await expect(getXenditInvoiceStatus('sub-1')).resolves.toBeNull();
+
+    process.env.XENDIT_SECRET_KEY = 'xnd_test_abc';
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    ) as unknown as typeof fetch;
+    await expect(getXenditInvoiceStatus('sub-1')).resolves.toBeNull();
   });
 });
