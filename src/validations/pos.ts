@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { currencySchema, positiveIntSchema } from './common';
 
 export const paymentMethodSchema = z.enum(['cash', 'card', 'qris', 'transfer'], {
-  errorMap: () => ({ message: 'Invalid payment method' }),
+  error: 'Invalid payment method',
 });
 
 export const transactionItemSchema = z.object({

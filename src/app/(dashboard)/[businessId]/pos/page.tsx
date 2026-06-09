@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import { requireBusinessAccess } from '@/lib/auth';
+import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
 import POSClient from '@/components/features/pos/POSClient/POSClient';
+import type { Business } from '@/types/business';
 
 export const metadata: Metadata = {
   title: 'POS - Ngepos',
-  description: 'Point of Sale transaction processing',
+  description: 'Proses transaksi point of sale',
 };
 
 interface POSPageProps {
@@ -15,10 +15,14 @@ interface POSPageProps {
 export default async function POSPage({ params }: POSPageProps) {
   const { businessId } = await params;
 
-  const access = await requireBusinessAccess(businessId);
-  if (!access) {
-    redirect('/');
-  }
+  const { business } = await requireBusinessAccess(businessId);
+  const features = await getBusinessPlanFeatures(businessId);
 
-  return <POSClient businessId={businessId} business={access.business} />;
+  return (
+    <POSClient
+      businessId={businessId}
+      business={business as Business}
+      paymentGatewayEnabled={features.paymentGateway}
+    />
+  );
 }

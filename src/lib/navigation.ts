@@ -2,6 +2,7 @@ import type { PlanConfig } from '@/lib/plans';
 import type { BusinessType, UserRole } from '@/types/business';
 import {
   canManageInventory,
+  canManageProducts,
   canManageStaff,
   canProcessTransactions,
   canViewAnalytics,
@@ -11,10 +12,21 @@ import {
 
 export type PlanFeatures = PlanConfig['features'];
 
+export type NavItemKey =
+  | 'pos'
+  | 'products'
+  | 'inventory'
+  | 'tables'
+  | 'staff'
+  | 'analytics'
+  | 'reports'
+  | 'settings';
+
 export interface NavItem {
+  key: NavItemKey;
   label: string;
   href: string;
-  key: string;
+  locked: boolean;
 }
 
 interface GetNavItemsParams {
@@ -27,47 +39,71 @@ interface GetNavItemsParams {
 export function getNavItems({
   businessId,
   role,
+  businessType,
   features,
 }: GetNavItemsParams): NavItem[] {
   const items: NavItem[] = [];
+  const to = (key: NavItemKey): string => `/${businessId}/${key}`;
 
   if (canProcessTransactions(role)) {
-    items.push({ label: 'POS', href: `/${businessId}/pos`, key: 'pos' });
+    items.push({ key: 'pos', label: 'POS', href: to('pos'), locked: false });
   }
 
-  if (features.inventory && canManageInventory(role)) {
+  if (canManageProducts(role)) {
     items.push({
-      label: 'Inventory',
-      href: `/${businessId}/inventory`,
+      key: 'products',
+      label: 'Produk',
+      href: to('products'),
+      locked: false,
+    });
+  }
+
+  if (canManageInventory(role)) {
+    items.push({
       key: 'inventory',
+      label: 'Inventaris',
+      href: to('inventory'),
+      locked: !features.inventory,
+    });
+  }
+
+  if (businessType === 'fnb' && canProcessTransactions(role)) {
+    items.push({
+      key: 'tables',
+      label: 'Meja',
+      href: to('tables'),
+      locked: !features.tableManagement,
     });
   }
 
   if (canManageStaff(role)) {
-    items.push({ label: 'Staff', href: `/${businessId}/staff`, key: 'staff' });
+    items.push({ key: 'staff', label: 'Staf', href: to('staff'), locked: false });
   }
 
-  if (features.analytics && canViewAnalytics(role)) {
+  if (canViewAnalytics(role)) {
     items.push({
-      label: 'Analytics',
-      href: `/${businessId}/analytics`,
       key: 'analytics',
+      label: 'Analitik',
+      href: to('analytics'),
+      locked: !features.analytics,
     });
   }
 
   if (canViewReports(role)) {
     items.push({
-      label: 'Reports',
-      href: `/${businessId}/reports`,
       key: 'reports',
+      label: 'Laporan',
+      href: to('reports'),
+      locked: !features.automatedReports,
     });
   }
 
   if (canAccessBusinessSettings(role)) {
     items.push({
-      label: 'Settings',
-      href: `/${businessId}/settings`,
       key: 'settings',
+      label: 'Pengaturan',
+      href: to('settings'),
+      locked: false,
     });
   }
 

@@ -19,7 +19,7 @@ const starterFeatures: PlanConfig['features'] = {
 };
 
 describe('getNavItems', () => {
-  it('returns POS, Inventory, Staff, Analytics, Reports, and Settings for an owner on pro features', () => {
+  it('returns all role-permitted items unlocked for an owner on pro features', () => {
     const items = getNavItems({
       businessId: 'biz-1',
       role: 'owner',
@@ -28,8 +28,9 @@ describe('getNavItems', () => {
     });
 
     expect(new Set(items.map((item) => item.key))).toEqual(
-      new Set(['pos', 'inventory', 'staff', 'analytics', 'reports', 'settings'])
+      new Set(['pos', 'products', 'inventory', 'staff', 'analytics', 'reports', 'settings'])
     );
+    expect(items.every((item) => !item.locked)).toBe(true);
   });
 
   it('returns only POS for a cashier on pro features', () => {
@@ -61,7 +62,7 @@ describe('getNavItems', () => {
     expect(keys).not.toContain('settings');
   });
 
-  it('returns POS, Staff, Reports, and Settings but not Analytics or Inventory for an owner on starter features', () => {
+  it('shows plan-gated items as locked for an owner on starter features', () => {
     const items = getNavItems({
       businessId: 'biz-1',
       role: 'owner',
@@ -69,11 +70,18 @@ describe('getNavItems', () => {
       features: starterFeatures,
     });
 
-    const keys = items.map((item) => item.key);
+    const byKey = new Map(items.map((item) => [item.key, item]));
 
-    expect(new Set(keys)).toEqual(new Set(['pos', 'staff', 'reports', 'settings']));
-    expect(keys).not.toContain('analytics');
-    expect(keys).not.toContain('inventory');
+    expect(new Set(byKey.keys())).toEqual(
+      new Set(['pos', 'products', 'inventory', 'staff', 'analytics', 'reports', 'settings'])
+    );
+    expect(byKey.get('inventory')?.locked).toBe(true);
+    expect(byKey.get('analytics')?.locked).toBe(true);
+    expect(byKey.get('reports')?.locked).toBe(true);
+    expect(byKey.get('pos')?.locked).toBe(false);
+    expect(byKey.get('products')?.locked).toBe(false);
+    expect(byKey.get('staff')?.locked).toBe(false);
+    expect(byKey.get('settings')?.locked).toBe(false);
   });
 
   it('builds hrefs that include the businessId', () => {

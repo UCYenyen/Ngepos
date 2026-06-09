@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { nameSchema, descriptionSchema } from './common';
 
 export const businessTypeSchema = z.enum(['retail', 'fnb'], {
-  errorMap: () => ({ message: 'Business type must be either retail or F&B' }),
+  error: 'Business type must be either retail or F&B',
 });
 
 export const createBusinessSchema = z.object({
@@ -27,7 +27,7 @@ export const businessSettingsSchema = z.object({
 export const businessMemberInviteSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.enum(['admin', 'manager', 'staff'], {
-    errorMap: () => ({ message: 'Invalid role' }),
+    error: 'Invalid role',
   }),
 });
 

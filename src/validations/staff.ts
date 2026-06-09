@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { emailSchema, nameSchema, phoneSchema } from './common';
 
 export const staffRoleSchema = z.enum(['admin', 'manager', 'cashier', 'staff'], {
-  errorMap: () => ({ message: 'Invalid staff role' }),
+  error: 'Invalid staff role',
 });
 
 export const staffMemberSchema = z.object({

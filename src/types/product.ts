@@ -27,6 +27,8 @@ export interface Product {
   image_url?: string;
   has_variants: boolean;
   track_stock: boolean;
+  stock_qty?: number;
+  low_stock_threshold?: number | null;
   created_at: string;
 }
 

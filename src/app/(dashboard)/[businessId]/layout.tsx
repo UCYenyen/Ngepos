@@ -1,8 +1,14 @@
 import type { ReactNode } from 'react';
-import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
+import {
+  requireBusinessAccess,
+  getBusinessPlanFeatures,
+  getUserBusinesses,
+  getCurrentUser,
+} from '@/lib/auth';
 import { getNavItems } from '@/lib/navigation';
 import { Sidebar } from '@/components/layout/Sidebar/Sidebar';
-import type { Business } from '@/types/business';
+import type { SwitcherBusiness } from '@/components/layout/BusinessSwitcher/types';
+import type { Business, UserRole } from '@/types/business';
 
 interface BusinessLayoutProps {
   children: ReactNode;
@@ -17,20 +23,43 @@ export default async function BusinessLayout({
 
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
+  const role = member.role as UserRole;
 
   const features = await getBusinessPlanFeatures(businessId);
-
   const items = getNavItems({
     businessId,
-    role: member.role,
+    role,
     businessType: typedBusiness.type,
     features,
   });
 
+  const user = await getCurrentUser();
+  const rawBusinesses = await getUserBusinesses();
+  const businesses: SwitcherBusiness[] = (
+    rawBusinesses as unknown as (Business | Business[] | null)[]
+  )
+    .map((entry) => (Array.isArray(entry) ? entry[0] : entry))
+    .filter((entry): entry is Business => Boolean(entry))
+    .map((entry) => ({ id: entry.id, name: entry.name, type: entry.type }));
+
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ??
+    user?.email ??
+    'Pengguna';
+
   return (
-    <div className="flex min-h-screen">
-      <Sidebar businessName={typedBusiness.name} items={items} />
-      <div className="flex-1 overflow-auto">{children}</div>
+    <div className="flex h-screen overflow-hidden bg-canvas">
+      <Sidebar
+        current={{
+          id: typedBusiness.id,
+          name: typedBusiness.name,
+          type: typedBusiness.type,
+        }}
+        businesses={businesses}
+        items={items}
+        user={{ name: displayName, email: user?.email ?? '', role }}
+      />
+      <div className="flex flex-1 flex-col overflow-auto">{children}</div>
     </div>
   );
 }

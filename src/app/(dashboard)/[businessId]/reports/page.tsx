@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireBusinessAccess } from '@/lib/auth';
+import { requireBusinessAccess, getBusinessPlanFeatures } from '@/lib/auth';
 import { canViewReports } from '@/lib/permissions';
 import { PageShell } from '@/components/common/PageShell/PageShell';
 import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
@@ -26,6 +26,7 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
 
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
+  const features = await getBusinessPlanFeatures(businessId);
 
   return (
     <PageShell title="Reports" subtitle={typedBusiness.name}>
@@ -33,6 +34,11 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
         <NoticeCard
           title="Access denied"
           description="You do not have permission to export reports. Contact a business owner or manager for access."
+        />
+      ) : !features.automatedReports ? (
+        <NoticeCard
+          title="Fitur Pro"
+          description="Laporan tersedia di paket Pro. Upgrade untuk mengekspor dan menjadwalkan laporan otomatis."
         />
       ) : (
         <ExportReports businessId={businessId} businessName={typedBusiness.name} />
