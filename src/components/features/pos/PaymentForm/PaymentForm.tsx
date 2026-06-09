@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Banknote, CreditCard, QrCode } from 'lucide-react';
 import { PaymentMethodCard } from '../PaymentMethodCard/PaymentMethodCard';
 import { formatCurrency } from '@/lib/format';
@@ -149,9 +150,11 @@ export function PaymentForm({
             Minta pelanggan scan kode untuk membayar
           </span>
           {qrisImage ? (
-            <img
+            <Image
               src={qrisImage}
               alt="Kode QRIS"
+              width={220}
+              height={220}
               className="size-55 rounded-media border border-hairline object-contain p-3"
             />
           ) : (

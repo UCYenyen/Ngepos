@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Layers } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import type { Product } from '@/types/product';
@@ -27,12 +28,14 @@ export function ProductCard({
       className="flex flex-col gap-2 rounded-media border border-hairline bg-surface-1 p-2.5 text-left transition-colors hover:border-ink-subtle"
     >
       <div className="relative">
-        <div className="aspect-4/3 w-full overflow-hidden rounded-md bg-surface-2">
+        <div className="relative aspect-4/3 w-full overflow-hidden rounded-md bg-surface-2">
           {product.image_url ? (
-            <img
+            <Image
               src={product.image_url}
               alt={product.name}
-              className="size-full object-cover"
+              fill
+              sizes="(max-width: 768px) 50vw, 200px"
+              className="object-cover"
             />
           ) : null}
         </div>
