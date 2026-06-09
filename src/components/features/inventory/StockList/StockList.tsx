@@ -1,325 +1,416 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { InventoryProduct } from '@/types/inventory';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Layers,
+  Package,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CategoryBadge } from '@/components/features/products/CategoryBadge/CategoryBadge';
 import { StockAdjustment } from '../StockAdjustment/StockAdjustment';
 import { StockHistory } from '../StockHistory/StockHistory';
+import { cn } from '@/lib/utils';
+import type { InventoryProduct } from '@/types/inventory';
 
 interface StockListProps {
   businessId: string;
 }
 
-type SortBy = 'name' | 'stock' | 'category';
-type FilterBy = 'all' | 'low-stock';
+type Status = 'loading' | 'error' | 'ready';
+type FilterBy = 'all' | 'low';
 
-interface ExpandedProduct {
-  [key: string]: boolean;
+async function fetchInventory(businessId: string): Promise<InventoryProduct[]> {
+  const response = await fetch(`/api/inventory?businessId=${businessId}`);
+  if (!response.ok) throw new Error('fetch failed');
+  return response.json();
+}
+
+function isLow(product: InventoryProduct): boolean {
+  return (
+    product.low_stock_threshold != null &&
+    product.current_stock <= product.low_stock_threshold
+  );
 }
 
 export function StockList({ businessId }: StockListProps) {
   const [products, setProducts] = useState<InventoryProduct[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('name');
-  const [filterBy, setFilterBy] = useState<FilterBy>('all');
-  const [expandedProducts, setExpandedProducts] = useState<ExpandedProduct>({});
-  const [selectedProduct, setSelectedProduct] = useState<InventoryProduct | null>(null);
-  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
-  const [selectedProductForHistory, setSelectedProductForHistory] = useState<InventoryProduct | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
-
-  const fetchInventory = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/inventory?businessId=${businessId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch inventory: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setProducts(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch inventory');
-    } finally {
-      setLoading(false);
-    }
-  }, [businessId]);
+  const [status, setStatus] = useState<Status>('loading');
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<FilterBy>('all');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [adjustTarget, setAdjustTarget] = useState<InventoryProduct | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<InventoryProduct | null>(
+    null
+  );
 
   useEffect(() => {
-    fetchInventory();
-  }, [businessId, fetchInventory]);
+    let alive = true;
+    (async () => {
+      setStatus('loading');
+      try {
+        const data = await fetchInventory(businessId);
+        if (!alive) return;
+        setProducts(data);
+        setStatus('ready');
+      } catch {
+        if (alive) setStatus('error');
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [businessId]);
 
-  const handleRetry = () => {
-    fetchInventory();
-  };
-
-  const getStockStatus = (current: number, threshold: number | null) => {
-    if (threshold === null) return 'neutral';
-    if (current <= threshold) return 'critical';
-    if (current <= threshold * 1.5) return 'warning';
-    return 'good';
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'critical':
-        return 'text-red-600 bg-red-50';
-      case 'warning':
-        return 'text-amber-600 bg-amber-50';
-      case 'good':
-        return 'text-green-600 bg-green-50';
-      default:
-        return 'text-slate-600 bg-slate-50';
+  async function refetch() {
+    try {
+      setProducts(await fetchInventory(businessId));
+      setStatus('ready');
+    } catch {
+      setStatus('error');
     }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'critical':
-        return <AlertTriangle className="w-4 h-4" />;
-      case 'warning':
-        return <AlertCircle className="w-4 h-4" />;
-      case 'good':
-        return <CheckCircle className="w-4 h-4" />;
-      default:
-        return null;
-    }
-  };
-
-  let filtered = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-
-    const status = getStockStatus(product.current_stock, product.low_stock_threshold);
-    const matchesFilter = filterBy === 'all' || (filterBy === 'low-stock' && status !== 'good');
-
-    return matchesSearch && matchesFilter;
-  });
-
-  filtered = filtered.sort((a, b) => {
-    if (sortBy === 'name') {
-      return a.name.localeCompare(b.name);
-    } else if (sortBy === 'stock') {
-      return b.current_stock - a.current_stock;
-    } else {
-      return (a.category_name || '').localeCompare(b.category_name || '');
-    }
-  });
-
-  const toggleExpand = (productId: string) => {
-    setExpandedProducts((prev) => ({
-      ...prev,
-      [productId]: !prev[productId],
-    }));
-  };
-
-  const handleAdjustStock = (product: InventoryProduct) => {
-    setSelectedProduct(product);
-    setAdjustmentOpen(true);
-  };
-
-  const handleViewHistory = (product: InventoryProduct) => {
-    setSelectedProductForHistory(product);
-    setHistoryOpen(true);
-  };
-
-  const handleAdjustmentComplete = async () => {
-    setAdjustmentOpen(false);
-    setSelectedProduct(null);
-    await handleRetry();
-  };
-
-  if (loading) {
-    return (
-      <Card className="p-8 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-slate-600">Loading inventory...</p>
-        </div>
-      </Card>
-    );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-700">{error}</AlertDescription>
-        </Alert>
-        <Button onClick={handleRetry} variant="outline" className="w-full">
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
+  if (status === 'loading') return <TableSkeleton />;
+  if (status === 'error') return <ErrorBox onRetry={refetch} />;
   if (products.length === 0) {
     return (
-      <Card className="p-8 text-center">
-        <p className="text-slate-600">No products found for this business.</p>
-      </Card>
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-hairline px-5 py-16 text-center">
+        <span className="flex size-14 items-center justify-center rounded-2xl bg-surface-2 text-ink-subtle">
+          <Package className="size-6" />
+        </span>
+        <p className="text-sm text-ink-muted">
+          Belum ada produk untuk dipantau stoknya.
+        </p>
+      </div>
     );
   }
 
+  const query = search.trim().toLowerCase();
+  const filtered = products.filter((product) => {
+    const matchesQuery =
+      !query ||
+      product.name.toLowerCase().includes(query) ||
+      (product.sku?.toLowerCase().includes(query) ?? false);
+    const matchesFilter = filter === 'all' || isLow(product);
+    return matchesQuery && matchesFilter;
+  });
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Input
-          placeholder="Search by name or SKU..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">Sort by Name</SelectItem>
-            <SelectItem value="stock">Sort by Stock</SelectItem>
-            <SelectItem value="category">Sort by Category</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterBy} onValueChange={(v) => setFilterBy(v as FilterBy)}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Products</SelectItem>
-            <SelectItem value="low-stock">Low Stock Only</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-75">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-subtle" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari produk…"
+            className="h-10 w-full rounded-md border border-hairline bg-surface-1 pl-9 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+        </div>
+        <div className="flex gap-1.5">
+          <FilterPill
+            label="Semua"
+            active={filter === 'all'}
+            onClick={() => setFilter('all')}
+          />
+          <FilterPill
+            label="Stok menipis"
+            active={filter === 'low'}
+            onClick={() => setFilter('low')}
+          />
+        </div>
       </div>
 
-      <ScrollArea className="rounded-lg border">
-        <div className="space-y-2 p-4">
-          {filtered.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-slate-600">No products match your search.</p>
-            </div>
-          ) : (
-            filtered.map((product) => {
-              const status = getStockStatus(product.current_stock, product.low_stock_threshold);
-              const isExpanded = expandedProducts[product.id];
-              const statusColor = getStatusColor(status);
-              const statusIcon = getStatusIcon(status);
+      <div className="overflow-hidden rounded-xl border border-hairline bg-surface-1">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-surface-2">
+              <Th className="w-10" />
+              <Th>Produk</Th>
+              <Th>SKU</Th>
+              <Th>Kategori</Th>
+              <Th className="text-right">Stok saat ini</Th>
+              <Th>Batas minimum</Th>
+              <Th>Status</Th>
+              <Th className="w-44" />
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <Td colSpan={8} className="py-8 text-center text-ink-muted">
+                  Tidak ada produk yang cocok.
+                </Td>
+              </tr>
+            ) : (
+              filtered.map((product) => {
+                const low = isLow(product);
+                const open = expanded[product.id];
+                const canExpand =
+                  product.has_variants && product.variants.length > 0;
 
-              return (
-                <Card key={product.id} className="overflow-hidden">
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">{product.name}</h3>
-                          {product.sku && <span className="text-xs text-slate-500">({product.sku})</span>}
-                        </div>
-                        {product.category_name && (
-                          <p className="text-sm text-slate-600 mb-2">{product.category_name}</p>
-                        )}
-                        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 mb-3">
-                          <div>
-                            <span className="text-xs text-slate-600">Price</span>
-                            <p className="font-semibold text-sm">IDR {product.price.toLocaleString('id-ID')}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-slate-600">Current Stock</span>
-                            <p className="font-semibold text-sm">{product.current_stock}</p>
-                          </div>
-                          {product.low_stock_threshold !== null && (
-                            <div>
-                              <span className="text-xs text-slate-600">Threshold</span>
-                              <p className="font-semibold text-sm">{product.low_stock_threshold}</p>
-                            </div>
-                          )}
-                          <div>
-                            <span className="text-xs text-slate-600">Status</span>
-                            <div className={cn('flex items-center gap-1 mt-0.5 w-fit px-2 py-1 rounded text-xs font-medium', statusColor)}>
-                              {statusIcon}
-                              <span className="capitalize">{status}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAdjustStock(product)}
-                        >
-                          Adjust Stock
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewHistory(product)}
-                        >
-                          View History
-                        </Button>
-                        {product.has_variants && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleExpand(product.id)}
-                            className="w-full"
+                return (
+                  <Fragment key={product.id}>
+                    <tr className="border-t border-hairline-soft">
+                      <Td>
+                        {canExpand && (
+                          <button
+                            type="button"
+                            aria-label="Lihat varian"
+                            onClick={() =>
+                              setExpanded((prev) => ({
+                                ...prev,
+                                [product.id]: !prev[product.id],
+                              }))
+                            }
+                            className="btn-icon size-7 text-ink-subtle"
                           >
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </Button>
+                            {open ? (
+                              <ChevronDown className="size-4" />
+                            ) : (
+                              <ChevronRight className="size-4" />
+                            )}
+                          </button>
                         )}
-                      </div>
-                    </div>
+                      </Td>
+                      <Td>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-ink">
+                            {product.name}
+                          </span>
+                          {product.has_variants && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
+                              <Layers className="size-2.5" />
+                              varian
+                            </span>
+                          )}
+                        </div>
+                      </Td>
+                      <Td>
+                        <span className="font-mono text-[12.5px] text-ink-muted">
+                          {product.sku || '—'}
+                        </span>
+                      </Td>
+                      <Td>
+                        {product.category_name ? (
+                          <CategoryBadge name={product.category_name} />
+                        ) : (
+                          <span className="text-ink-tertiary">—</span>
+                        )}
+                      </Td>
+                      <Td className="text-right">
+                        <span
+                          className={cn(
+                            'font-mono text-[15px] font-bold tabular-nums',
+                            low ? 'text-error' : 'text-ink'
+                          )}
+                        >
+                          {product.current_stock}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="font-mono text-ink-muted">
+                          {product.low_stock_threshold ?? '—'}
+                        </span>
+                      </Td>
+                      <Td>
+                        <StatusBadge
+                          low={low}
+                          tracked={product.low_stock_threshold != null}
+                        />
+                      </Td>
+                      <Td>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAdjustTarget(product)}
+                            className="btn-secondary h-8 px-3 text-[13px]"
+                          >
+                            Sesuaikan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHistoryTarget(product)}
+                            aria-label="Riwayat stok"
+                            className="btn-icon size-8 text-ink-subtle hover:text-ink"
+                          >
+                            <Clock className="size-4" />
+                          </button>
+                        </div>
+                      </Td>
+                    </tr>
+                    {canExpand &&
+                      open &&
+                      product.variants.map((variant) => (
+                        <tr key={variant.id} className="bg-canvas">
+                          <Td />
+                          <Td colSpan={7}>
+                            <div className="flex items-center justify-between pl-4 pr-2">
+                              <span className="flex items-center gap-2 text-[13px] text-ink-muted">
+                                <Layers className="size-3.5" />
+                                {variant.name}
+                              </span>
+                              <span
+                                className={cn(
+                                  'font-mono text-[13px] tabular-nums',
+                                  variant.stock_qty <= 5
+                                    ? 'text-error'
+                                    : 'text-ink-muted'
+                                )}
+                              >
+                                {variant.stock_qty} unit
+                              </span>
+                            </div>
+                          </Td>
+                        </tr>
+                      ))}
+                  </Fragment>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
 
-                    {product.has_variants && isExpanded && product.variants.length > 0 && (
-                      <div className="mt-4 pt-4 border-t space-y-2">
-                        <p className="text-xs font-semibold text-slate-600 uppercase">Variants</p>
-                        {product.variants.map((variant) => (
-                          <div key={variant.id} className="flex justify-between items-center text-sm bg-slate-50 p-2 rounded">
-                            <span>{variant.name}</span>
-                            <span className="font-semibold">{variant.stock_qty} units</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })
-          )}
-        </div>
-      </ScrollArea>
-
-      {selectedProduct && (
+      {adjustTarget && (
         <StockAdjustment
           businessId={businessId}
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          currentStock={selectedProduct.current_stock}
-          hasVariants={selectedProduct.has_variants}
-          variants={selectedProduct.variants}
-          onAdjustmentComplete={handleAdjustmentComplete}
-          open={adjustmentOpen}
-          onOpenChange={setAdjustmentOpen}
+          product={adjustTarget}
+          open
+          onOpenChange={(open) => {
+            if (!open) setAdjustTarget(null);
+          }}
+          onComplete={() => {
+            setAdjustTarget(null);
+            refetch();
+          }}
         />
       )}
 
-      {selectedProductForHistory && (
+      {historyTarget && (
         <StockHistory
           businessId={businessId}
-          productId={selectedProductForHistory.id}
-          productName={selectedProductForHistory.name}
-          open={historyOpen}
-          onOpenChange={setHistoryOpen}
+          productId={historyTarget.id}
+          productName={historyTarget.name}
+          open
+          onOpenChange={(open) => {
+            if (!open) setHistoryTarget(null);
+          }}
         />
       )}
+    </div>
+  );
+}
+
+function StatusBadge({ low, tracked }: { low: boolean; tracked: boolean }) {
+  if (!tracked) return <span className="text-[13px] text-ink-tertiary">—</span>;
+  return low ? (
+    <span className="badge badge-error gap-1.5">
+      <span className="size-1.5 rounded-full bg-error" />
+      Stok menipis
+    </span>
+  ) : (
+    <span className="badge badge-success gap-1.5">
+      <span className="size-1.5 rounded-full bg-success" />
+      Aman
+    </span>
+  );
+}
+
+function FilterPill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'h-9 rounded-full border px-3.5 text-[13px] font-medium transition-colors',
+        active
+          ? 'border-ink bg-ink text-surface-1'
+          : 'border-hairline bg-surface-1 text-ink-muted hover:bg-canvas hover:text-ink'
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Th({
+  children,
+  className,
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <th
+      className={cn(
+        'px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-ink-subtle',
+        className
+      )}
+    >
+      {children}
+    </th>
+  );
+}
+
+function Td({
+  children,
+  className,
+  colSpan,
+}: {
+  children?: ReactNode;
+  className?: string;
+  colSpan?: number;
+}) {
+  return (
+    <td
+      colSpan={colSpan}
+      className={cn('px-4 py-3 align-middle text-[13.5px] text-ink', className)}
+    >
+      {children}
+    </td>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-hairline bg-surface-1">
+      {['a', 'b', 'c', 'd', 'e'].map((key) => (
+        <div
+          key={key}
+          className="flex items-center gap-4 border-t border-hairline-soft px-4 py-3.5 first:border-t-0"
+        >
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="ml-auto h-4 w-12" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ErrorBox({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-hairline bg-surface-1 px-5 py-12 text-center">
+      <p className="text-sm text-ink-muted">Gagal memuat inventaris.</p>
+      <button type="button" onClick={onRetry} className="btn-secondary gap-2">
+        <RefreshCw className="size-4" />
+        Coba lagi
+      </button>
     </div>
   );
 }

@@ -4,14 +4,14 @@ import { canViewAnalytics } from '@/lib/permissions';
 import { PageShell } from '@/components/common/PageShell/PageShell';
 import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
 import { AnalyticsClient } from '@/components/features/analytics/AnalyticsClient/AnalyticsClient';
-import type { Business } from '@/types/business';
+import type { Business, UserRole } from '@/types/business';
 
 export const metadata: Metadata = {
-  title: 'Analytics - Ngepos',
-  description: 'Sales analytics and performance dashboard',
+  title: 'Analitik - Ngepos',
+  description: 'Dashboard analitik dan performa penjualan',
   openGraph: {
-    title: 'Analytics - Ngepos',
-    description: 'Sales analytics and performance dashboard',
+    title: 'Analitik - Ngepos',
+    description: 'Dashboard analitik dan performa penjualan',
     url: 'https://ngepos.com/analytics',
     siteName: 'Ngepos',
   },
@@ -26,25 +26,33 @@ export default async function AnalyticsPage({ params }: AnalyticsPageProps) {
 
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
+  const role = member.role as UserRole;
 
   const features = await getBusinessPlanFeatures(businessId);
-  const hasAnalytics = features.analytics;
+
+  if (!features.analytics) {
+    return (
+      <PageShell title="Analitik" subtitle="Pahami performa bisnismu dengan data.">
+        <NoticeCard
+          title="Fitur Pro"
+          description="Dashboard analitik lengkap — revenue, produk terlaris, kinerja kasir, dan tren penjualan — tersedia di paket Pro & Enterprise. Upgrade untuk membuka."
+        />
+      </PageShell>
+    );
+  }
+
+  if (!canViewAnalytics(role)) {
+    return (
+      <PageShell title="Analitik" subtitle="Pahami performa bisnismu dengan data.">
+        <NoticeCard
+          title="Akses ditolak"
+          description="Kamu tidak punya izin melihat analitik. Hubungi pemilik atau manajer bisnis."
+        />
+      </PageShell>
+    );
+  }
 
   return (
-    <PageShell title="Analytics" subtitle={typedBusiness.name}>
-      {!hasAnalytics ? (
-        <NoticeCard
-          title="Analytics requires the Pro plan"
-          description="Sales analytics and the performance dashboard are available on the Pro and Enterprise plans. Upgrade your subscription to unlock insights."
-        />
-      ) : !canViewAnalytics(member.role) ? (
-        <NoticeCard
-          title="Access denied"
-          description="You do not have permission to view analytics. Contact a business owner or manager for access."
-        />
-      ) : (
-        <AnalyticsClient businessId={businessId} />
-      )}
-    </PageShell>
+    <AnalyticsClient businessId={businessId} businessName={typedBusiness.name} />
   );
 }

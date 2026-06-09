@@ -4,14 +4,14 @@ import { canViewReports } from '@/lib/permissions';
 import { PageShell } from '@/components/common/PageShell/PageShell';
 import { NoticeCard } from '@/components/common/NoticeCard/NoticeCard';
 import { ExportReports } from '@/components/features/reports/ExportReports/ExportReports';
-import type { Business } from '@/types/business';
+import type { Business, UserRole } from '@/types/business';
 
 export const metadata: Metadata = {
-  title: 'Reports - Ngepos',
-  description: 'Export sales transaction reports',
+  title: 'Laporan - Ngepos',
+  description: 'Ringkasan performa bisnis dan ekspor laporan PDF/CSV',
   openGraph: {
-    title: 'Reports - Ngepos',
-    description: 'Export sales transaction reports',
+    title: 'Laporan - Ngepos',
+    description: 'Ringkasan performa bisnis dan ekspor laporan PDF/CSV',
     url: 'https://ngepos.com/reports',
     siteName: 'Ngepos',
   },
@@ -26,19 +26,23 @@ export default async function ReportsPage({ params }: ReportsPageProps) {
 
   const { business, member } = await requireBusinessAccess(businessId);
   const typedBusiness = business as Business;
+  const role = member.role as UserRole;
   const features = await getBusinessPlanFeatures(businessId);
 
   return (
-    <PageShell title="Reports" subtitle={typedBusiness.name}>
-      {!canViewReports(member.role) ? (
+    <PageShell
+      title="Laporan"
+      subtitle="Ringkasan performa bisnis untuk periode tertentu."
+    >
+      {!canViewReports(role) ? (
         <NoticeCard
-          title="Access denied"
-          description="You do not have permission to export reports. Contact a business owner or manager for access."
+          title="Akses ditolak"
+          description="Kamu tidak punya izin mengakses laporan. Hubungi pemilik atau manajer bisnis."
         />
       ) : !features.automatedReports ? (
         <NoticeCard
           title="Fitur Pro"
-          description="Laporan tersedia di paket Pro. Upgrade untuk mengekspor dan menjadwalkan laporan otomatis."
+          description="Buat dan unduh laporan PDF & CSV, plus laporan otomatis via Email & WhatsApp. Tersedia di paket Pro & Enterprise."
         />
       ) : (
         <ExportReports businessId={businessId} businessName={typedBusiness.name} />

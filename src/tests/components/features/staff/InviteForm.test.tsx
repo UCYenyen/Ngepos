@@ -9,39 +9,29 @@ describe('InviteForm', () => {
 
   it('renders invitation form when open is true', () => {
     render(
-      <InviteForm
-        businessId="business-1"
-        open={true}
-        onOpenChange={vi.fn()}
-      />
+      <InviteForm businessId="business-1" open={true} onOpenChange={vi.fn()} />
     );
 
-    expect(screen.getByText(/Invite Staff Member/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/staff@example.com/i)).toBeInTheDocument();
+    expect(screen.getByText(/Undang staf/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/staff@example.com/i)
+    ).toBeInTheDocument();
   });
 
   it('does not render when open is false', () => {
     render(
-      <InviteForm
-        businessId="business-1"
-        open={false}
-        onOpenChange={vi.fn()}
-      />
+      <InviteForm businessId="business-1" open={false} onOpenChange={vi.fn()} />
     );
 
-    expect(screen.queryByText(/Invite Staff Member/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Undang staf/i)).not.toBeInTheDocument();
   });
 
   it('validates empty email', async () => {
     render(
-      <InviteForm
-        businessId="business-1"
-        open={true}
-        onOpenChange={vi.fn()}
-      />
+      <InviteForm businessId="business-1" open={true} onOpenChange={vi.fn()} />
     );
 
-    const submitButton = screen.getByText(/Send Invitation/i);
+    const submitButton = screen.getByText(/Kirim undangan/i);
     expect(submitButton).toBeDisabled();
   });
 
@@ -49,17 +39,15 @@ describe('InviteForm', () => {
     global.fetch = vi.fn();
 
     render(
-      <InviteForm
-        businessId="business-1"
-        open={true}
-        onOpenChange={vi.fn()}
-      />
+      <InviteForm businessId="business-1" open={true} onOpenChange={vi.fn()} />
     );
 
-    const emailInput = screen.getByPlaceholderText(/staff@example.com/i) as HTMLInputElement;
+    const emailInput = screen.getByPlaceholderText(
+      /staff@example.com/i
+    ) as HTMLInputElement;
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
 
-    const submitButton = screen.getByText(/Send Invitation/i);
+    const submitButton = screen.getByText(/Kirim undangan/i);
     fireEvent.click(submitButton);
 
     await waitFor(() => {
@@ -91,7 +79,7 @@ describe('InviteForm', () => {
     );
 
     const emailInput = screen.getByPlaceholderText(/staff@example.com/i);
-    const submitButton = screen.getByText(/Send Invitation/i);
+    const submitButton = screen.getByText(/Kirim undangan/i);
 
     fireEvent.change(emailInput, { target: { value: 'staff@example.com' } });
     fireEvent.click(submitButton);
@@ -118,15 +106,11 @@ describe('InviteForm', () => {
     );
 
     render(
-      <InviteForm
-        businessId="business-1"
-        open={true}
-        onOpenChange={vi.fn()}
-      />
+      <InviteForm businessId="business-1" open={true} onOpenChange={vi.fn()} />
     );
 
     const emailInput = screen.getByPlaceholderText(/staff@example.com/i);
-    const submitButton = screen.getByText(/Send Invitation/i);
+    const submitButton = screen.getByText(/Kirim undangan/i);
 
     fireEvent.change(emailInput, { target: { value: 'staff@example.com' } });
     fireEvent.click(submitButton);
@@ -138,15 +122,11 @@ describe('InviteForm', () => {
 
   it('shows role description for cashier', async () => {
     render(
-      <InviteForm
-        businessId="business-1"
-        open={true}
-        onOpenChange={vi.fn()}
-      />
+      <InviteForm businessId="business-1" open={true} onOpenChange={vi.fn()} />
     );
 
     expect(
-      screen.getByText(/Cashiers can only process transactions/i)
+      screen.getByText(/Kasir hanya dapat memproses transaksi/i)
     ).toBeInTheDocument();
   });
 
@@ -160,7 +140,7 @@ describe('InviteForm', () => {
       />
     );
 
-    const cancelButton = screen.getByText(/Cancel/i);
+    const cancelButton = screen.getByText(/Batal/i);
     fireEvent.click(cancelButton);
 
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);

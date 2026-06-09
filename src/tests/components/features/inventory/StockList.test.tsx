@@ -7,11 +7,13 @@ describe('StockList', () => {
     global.fetch = vi.fn();
   });
 
-  it('renders loading state initially', () => {
+  it('renders loading skeleton initially', () => {
     const fetchMock = vi.fn((): Promise<Response> => new Promise(() => {}));
     global.fetch = fetchMock;
-    render(<StockList businessId="bus1" />);
-    expect(screen.getByText(/loading inventory/i)).toBeInTheDocument();
+    const { container } = render(<StockList businessId="bus1" />);
+    expect(
+      container.querySelector('[data-slot="skeleton"]')
+    ).toBeInTheDocument();
   });
 
   it('renders products after loading', async () => {
@@ -52,7 +54,7 @@ describe('StockList', () => {
 
     render(<StockList businessId="bus1" />);
 
-    const errorMessage = await screen.findByText(/failed to fetch inventory/i);
+    const errorMessage = await screen.findByText(/gagal memuat inventaris/i);
     expect(errorMessage).toBeInTheDocument();
   });
 });

@@ -49,12 +49,14 @@ export interface TransactionItem {
   created_at: string;
 }
 
+export type TableStatus = 'available' | 'occupied' | 'reserved';
+
 export interface Table {
   id: string;
   business_id: string;
   name: string;
-  capacity?: number;
-  status: 'available' | 'occupied' | 'reserved';
+  capacity?: number | null;
+  status: TableStatus;
   created_at: string;
 }
 

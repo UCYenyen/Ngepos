@@ -32,18 +32,22 @@ describe('StaffList', () => {
     global.fetch = vi.fn();
   });
 
-  it('renders loading state initially', async () => {
+  it('renders loading skeleton initially', async () => {
     global.fetch = vi.fn((): Promise<Response> =>
       new Promise((resolve) =>
         setTimeout(() => resolve(new Response(JSON.stringify({ data: { staff: [] } }))), 100)
       )
     );
 
-    render(<StaffList businessId="business-1" />);
-    expect(screen.getByText(/Loading staff/i)).toBeInTheDocument();
+    const { container } = render(<StaffList businessId="business-1" />);
+    expect(
+      container.querySelector('[data-slot="skeleton"]')
+    ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.queryByText(/Loading staff/i)).not.toBeInTheDocument();
+      expect(
+        container.querySelector('[data-slot="skeleton"]')
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -89,7 +93,7 @@ describe('StaffList', () => {
     render(<StaffList businessId="business-1" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Invite New Staff/i)).toBeInTheDocument();
+      expect(screen.getByText(/Undang staf/i)).toBeInTheDocument();
     });
   });
 
@@ -103,7 +107,7 @@ describe('StaffList', () => {
     render(<StaffList businessId="business-1" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to fetch staff/i)).toBeInTheDocument();
+      expect(screen.getByText(/gagal memuat staf/i)).toBeInTheDocument();
     });
   });
 
@@ -117,7 +121,7 @@ describe('StaffList', () => {
     render(<StaffList businessId="business-1" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/No staff members yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/belum ada staf/i)).toBeInTheDocument();
     });
   });
 });

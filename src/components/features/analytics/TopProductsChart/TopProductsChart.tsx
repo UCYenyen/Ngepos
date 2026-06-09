@@ -1,52 +1,47 @@
-"use client";
+'use client';
 
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import type { TopProductsChartProps } from './types';
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { formatCurrency } from "@/lib/format";
-import type { TopProductsChartProps } from "./types";
-
-const chartConfig = {
-  revenue: { label: "Revenue", color: "var(--color-chart-2)" },
-} satisfies ChartConfig;
+const BAR_COLORS = [
+  'var(--accent)',
+  'var(--chart-1)',
+  'var(--chart-5)',
+  'var(--chart-4)',
+  'var(--chart-3)',
+];
 
 export function TopProductsChart({ data }: TopProductsChartProps) {
+  const max = Math.max(...data.map((item) => item.quantity), 1);
+
   return (
-    <div className="card">
-      <h3 className="text-ink font-semibold mb-4">Top Products</h3>
+    <div className="rounded-xl border border-hairline bg-surface-1 p-5">
+      <h3 className="mb-4 text-[15px] font-semibold text-ink">Produk terlaris</h3>
       {data.length === 0 ? (
-        <p className="text-ink-muted text-sm">No data for this period</p>
+        <p className="py-12 text-center text-sm text-ink-muted">
+          Belum ada data untuk periode ini.
+        </p>
       ) : (
-        <ChartContainer config={chartConfig}>
-          <BarChart data={data} layout="vertical">
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => formatCurrency(Number(value))}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              width={120}
-              tickLine={false}
-              axisLine={false}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => formatCurrency(Number(value))}
+        <div className="flex flex-col gap-3.5">
+          {data.map((product, index) => (
+            <div key={product.productId} className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="font-medium text-ink">{product.name}</span>
+                <span className="font-mono tabular-nums text-ink-muted">
+                  {product.quantity} terjual
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${(product.quantity / max) * 100}%`,
+                    background: BAR_COLORS[index % BAR_COLORS.length],
+                  }}
                 />
-              }
-            />
-            <Bar dataKey="revenue" fill="var(--color-chart-2)" radius={4} />
-          </BarChart>
-        </ChartContainer>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

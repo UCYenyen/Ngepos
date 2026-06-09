@@ -1,9 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import {
+  PackagePlus,
+  PackageX,
+  RefreshCw,
+  ShoppingCart,
+  SlidersHorizontal,
+  type LucideIcon,
+} from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 interface StockMovement {
@@ -28,6 +41,31 @@ interface StockHistoryProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const TYPE_META: Record<
+  StockMovement['type'],
+  { label: string; icon: LucideIcon; tone: string }
+> = {
+  sale: { label: 'Penjualan', icon: ShoppingCart, tone: 'bg-error-light text-error' },
+  restock: {
+    label: 'Restock',
+    icon: PackagePlus,
+    tone: 'bg-success-light text-success',
+  },
+  adjustment: {
+    label: 'Penyesuaian',
+    icon: SlidersHorizontal,
+    tone: 'bg-surface-2 text-ink-muted',
+  },
+  damage: { label: 'Rusak', icon: PackageX, tone: 'bg-error-light text-error' },
+};
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
 export function StockHistory({
   businessId,
   productId,
@@ -36,158 +74,136 @@ export function StockHistory({
   onOpenChange,
 }: StockHistoryProps) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>(
+    'loading'
+  );
 
   useEffect(() => {
     if (!open) return;
-
-    const fetchHistory = async () => {
+    let alive = true;
+    (async () => {
+      setStatus('loading');
       try {
-        setLoading(true);
-        setError(null);
         const response = await fetch(
           `/api/inventory/movements?businessId=${businessId}&productId=${productId}&limit=50`
         );
-        if (!response.ok) {
-          throw new Error(`Failed to fetch history: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error('fetch failed');
         const data = await response.json();
-        setMovements(data.movements || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch history');
-      } finally {
-        setLoading(false);
+        if (!alive) return;
+        setMovements(data.movements ?? []);
+        setStatus('ready');
+      } catch {
+        if (alive) setStatus('error');
       }
+    })();
+    return () => {
+      alive = false;
     };
-
-    fetchHistory();
   }, [open, businessId, productId]);
 
-  const getMovementTypeLabel = (type: string): string => {
-    switch (type) {
-      case 'sale':
-        return 'Sale';
-      case 'restock':
-        return 'Restock';
-      case 'adjustment':
-        return 'Adjustment';
-      case 'damage':
-        return 'Damage';
-      default:
-        return type;
-    }
-  };
-
-  const getMovementTypeColor = (type: string): string => {
-    switch (type) {
-      case 'sale':
-        return 'text-red-600 bg-red-50';
-      case 'restock':
-        return 'text-green-600 bg-green-50';
-      case 'adjustment':
-        return 'text-blue-600 bg-blue-50';
-      case 'damage':
-        return 'text-amber-600 bg-amber-50';
-      default:
-        return 'text-slate-600 bg-slate-50';
-    }
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(date);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Stock History: {productName}</DialogTitle>
-          <DialogDescription>
-            Last 50 stock movements for this product
-          </DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
+        <SheetHeader className="border-b border-hairline-soft px-5 py-4">
+          <SheetTitle className="text-base font-semibold text-ink">
+            Riwayat stok
+          </SheetTitle>
+          <SheetDescription className="text-[13px] text-ink-muted">
+            {productName} · 50 pergerakan terakhir
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {error && (
-            <Alert className="border-red-200 bg-red-50 mb-4">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-700">{error}</AlertDescription>
-            </Alert>
+        <div className="flex-1 overflow-auto px-5 py-5">
+          {status === 'loading' && (
+            <div className="flex flex-col gap-4">
+              {['a', 'b', 'c', 'd'].map((key) => (
+                <div key={key} className="flex gap-3">
+                  <Skeleton className="size-8 shrink-0 rounded-full" />
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
 
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-slate-600">Loading history...</p>
-              </div>
+          {status === 'error' && (
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <p className="text-sm text-ink-muted">Gagal memuat riwayat.</p>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="btn-secondary gap-2"
+              >
+                <RefreshCw className="size-4" />
+                Tutup
+              </button>
             </div>
-          ) : movements.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <p className="text-slate-600">No stock movements found for this product.</p>
-            </div>
-          ) : (
-            <div className="overflow-y-auto flex-1">
-              <div className="space-y-3 pb-4">
-                {movements.map((movement) => (
-                  <div
-                    key={movement.id}
-                    className="p-3 border rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <div
+          )}
+
+          {status === 'ready' && movements.length === 0 && (
+            <p className="py-10 text-center text-sm text-ink-muted">
+              Belum ada pergerakan stok untuk produk ini.
+            </p>
+          )}
+
+          {status === 'ready' && movements.length > 0 && (
+            <div className="flex flex-col">
+              {movements.map((movement, index) => {
+                const meta = TYPE_META[movement.type];
+                const Icon = meta.icon;
+                const last = index === movements.length - 1;
+                return (
+                  <div key={movement.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span
+                        className={cn(
+                          'flex size-8 shrink-0 items-center justify-center rounded-full',
+                          meta.tone
+                        )}
+                      >
+                        <Icon className="size-4" />
+                      </span>
+                      {!last && <span className="w-px flex-1 bg-hairline-soft" />}
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1 pb-5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-semibold text-ink">
+                          {meta.label}
+                        </span>
+                        <span
                           className={cn(
-                            'px-2.5 py-1 rounded text-xs font-semibold whitespace-nowrap',
-                            getMovementTypeColor(movement.type)
+                            'font-mono text-[13px] font-bold tabular-nums',
+                            movement.quantity_change > 0
+                              ? 'text-success'
+                              : 'text-error'
                           )}
                         >
-                          {getMovementTypeLabel(movement.type)}
-                        </div>
-                        <span className="text-sm font-semibold">
-                          {movement.quantity_change > 0 ? '+' : ''}{movement.quantity_change}
+                          {movement.quantity_change > 0 ? '+' : ''}
+                          {movement.quantity_change}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-500">
-                        {formatDate(movement.created_at)}
+                      <span className="text-[12px] text-ink-muted">
+                        {formatDateTime(movement.created_at)} ·{' '}
+                        {movement.created_by_name}
+                        {movement.variant_name
+                          ? ` · ${movement.variant_name}`
+                          : ''}
                       </span>
-                    </div>
-
-                    <div className="text-sm text-slate-700 mb-2">
-                      <span className="font-medium">By: </span>
-                      {movement.created_by_name}
-                      {movement.variant_name && (
-                        <>
-                          {' '}
-                          <span className="text-slate-600">
-                            ({movement.variant_name})
-                          </span>
-                        </>
+                      {movement.note && (
+                        <span className="rounded-md bg-canvas px-2.5 py-1.5 text-[12px] text-ink-muted">
+                          {movement.note}
+                        </span>
                       )}
                     </div>
-
-                    {movement.note && (
-                      <div className="text-sm text-slate-600 bg-slate-50 p-2 rounded">
-                        <span className="font-medium">Note: </span>
-                        {movement.note}
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

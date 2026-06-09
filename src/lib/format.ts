@@ -12,6 +12,23 @@ export function formatDate(value: string | Date): string {
   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(date);
 }
 
+export function formatCompactCurrency(amount: number): string {
+  if (amount >= 1_000_000) {
+    return `Rp ${(amount / 1_000_000).toFixed(1).replace('.', ',')} jt`;
+  }
+  if (amount >= 1_000) {
+    return `Rp ${Math.round(amount / 1_000)} rb`;
+  }
+  return `Rp ${Math.round(amount)}`;
+}
+
+export function formatDayMonth(value: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(value));
+}
+
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';

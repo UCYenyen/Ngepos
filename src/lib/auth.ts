@@ -61,6 +61,33 @@ export const getBusinessPlanFeatures = cache(
   }
 );
 
+export const getBusinessPlan = cache(
+  async (businessId: string): Promise<PlanName> => {
+    try {
+      const admin = createAdminClient();
+
+      const { data: business } = await admin
+        .from('businesses')
+        .select('owner_id')
+        .eq('id', businessId)
+        .maybeSingle<{ owner_id: string }>();
+      if (!business) return 'starter';
+
+      const { data: subscription } = await admin
+        .from('subscriptions')
+        .select('plan, status')
+        .eq('user_id', business.owner_id)
+        .maybeSingle<{ plan: PlanName; status: string }>();
+
+      if (!subscription || subscription.status !== 'active') return 'starter';
+      return subscription.plan;
+    } catch (error) {
+      console.error('Error resolving business plan:', error);
+      return 'starter';
+    }
+  }
+);
+
 export async function getUserBusinesses() {
   const user = await getCurrentUser();
   if (!user) return [];

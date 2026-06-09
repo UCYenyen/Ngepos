@@ -1,58 +1,104 @@
-"use client";
+'use client';
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Cell, Pie, PieChart } from 'recharts';
 
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from "@/components/ui/chart";
-import { formatCurrency } from "@/lib/format";
-import type { PaymentBreakdownSlice } from "@/types/analytics";
-import type { PaymentBreakdownChartProps } from "./types";
+} from '@/components/ui/chart';
+import { formatCurrency } from '@/lib/format';
+import type { PaymentBreakdownSlice } from '@/types/analytics';
+import type { PaymentBreakdownChartProps } from './types';
 
-const methodLabels: Record<PaymentBreakdownSlice["method"], string> = {
-  cash: "Cash",
-  qris: "QRIS",
-  gateway: "Gateway",
+const METHOD_LABELS: Record<PaymentBreakdownSlice['method'], string> = {
+  cash: 'Tunai',
+  qris: 'QRIS',
+  gateway: 'Gateway',
 };
 
+const SLICE_COLORS = [
+  'var(--chart-2)',
+  'var(--chart-1)',
+  'var(--chart-3)',
+];
+
 const chartConfig = {
-  revenue: { label: "Revenue", color: "var(--color-chart-3)" },
+  revenue: { label: 'Pendapatan' },
 } satisfies ChartConfig;
 
 export function PaymentBreakdownChart({ data }: PaymentBreakdownChartProps) {
   const chartData = data.map((slice) => ({
     ...slice,
-    method: methodLabels[slice.method],
+    label: METHOD_LABELS[slice.method],
   }));
+  const total = chartData.reduce((sum, slice) => sum + slice.revenue, 0);
 
   return (
-    <div className="card">
-      <h3 className="text-ink font-semibold mb-4">Payment Methods</h3>
+    <div className="rounded-xl border border-hairline bg-surface-1 p-5">
+      <h3 className="mb-4 text-[15px] font-semibold text-ink">
+        Metode pembayaran
+      </h3>
       {chartData.length === 0 ? (
-        <p className="text-ink-muted text-sm">No data for this period</p>
+        <p className="py-12 text-center text-sm text-ink-muted">
+          Belum ada data untuk periode ini.
+        </p>
       ) : (
-        <ChartContainer config={chartConfig}>
-          <BarChart data={chartData}>
-            <CartesianGrid vertical={false} />
-            <XAxis dataKey="method" tickLine={false} axisLine={false} />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => formatCurrency(Number(value))}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value) => formatCurrency(Number(value))}
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-square h-40 shrink-0"
+          >
+            <PieChart>
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    nameKey="label"
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
+                }
+              />
+              <Pie
+                data={chartData}
+                dataKey="revenue"
+                nameKey="label"
+                innerRadius={48}
+                outerRadius={70}
+                strokeWidth={2}
+                stroke="var(--surface-1)"
+              >
+                {chartData.map((slice, index) => (
+                  <Cell
+                    key={slice.method}
+                    fill={SLICE_COLORS[index % SLICE_COLORS.length]}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+          <div className="flex w-full flex-col gap-2">
+            {chartData.map((slice, index) => (
+              <div
+                key={slice.method}
+                className="flex items-center gap-2 text-[12.5px]"
+              >
+                <span
+                  className="size-2.5 shrink-0 rounded-sm"
+                  style={{
+                    background: SLICE_COLORS[index % SLICE_COLORS.length],
+                  }}
                 />
-              }
-            />
-            <Bar dataKey="revenue" fill="var(--color-chart-3)" radius={4} />
-          </BarChart>
-        </ChartContainer>
+                <span className="flex-1 font-medium text-ink">
+                  {slice.label}
+                </span>
+                <span className="font-mono tabular-nums text-ink-muted">
+                  {total > 0 ? Math.round((slice.revenue / total) * 100) : 0}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

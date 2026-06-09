@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { validateEmail } from '@/lib/staff-validation';
-import type { UserRole } from '@/types/business';
+import { cn } from '@/lib/utils';
 
 interface InviteFormProps {
   businessId: string;
@@ -18,152 +19,165 @@ interface InviteFormProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-type FormState = 'form' | 'success' | 'error';
+type InviteRole = 'manager' | 'cashier';
 
-export function InviteForm({ businessId, onInvitationSent, open = false, onOpenChange }: InviteFormProps) {
+const ROLES: { value: InviteRole; label: string; summary: string }[] = [
+  {
+    value: 'manager',
+    label: 'Manager',
+    summary:
+      'Manajer dapat melihat analitik, mengelola produk, dan memproses transaksi.',
+  },
+  {
+    value: 'cashier',
+    label: 'Cashier',
+    summary: 'Kasir hanya dapat memproses transaksi.',
+  },
+];
+
+export function InviteForm({
+  businessId,
+  onInvitationSent,
+  open = false,
+  onOpenChange,
+}: InviteFormProps) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<UserRole>('cashier');
+  const [role, setRole] = useState<InviteRole>('cashier');
   const [loading, setLoading] = useState(false);
-  const [formState, setFormState] = useState<FormState>('form');
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSubmit = async () => {
+  function reset() {
+    setEmail('');
+    setRole('cashier');
+    setError(null);
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (!next && !loading) reset();
+    onOpenChange?.(next);
+  }
+
+  async function handleSubmit() {
     setError(null);
 
     if (!email.trim()) {
-      setError('Email is required');
+      setError('Email wajib diisi');
       return;
     }
-
     if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
+      setError('Masukkan alamat email yang valid');
       return;
     }
 
-    if (role === 'owner') {
-      setError('Cannot invite owner role');
-      return;
-    }
-
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await fetch('/api/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId, email, role }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send invitation');
+        throw new Error(data.error || 'Gagal mengirim undangan');
       }
 
-      setSuccessMessage(`Invitation sent to ${email}`);
-      setFormState('success');
-
-      setTimeout(() => {
-        setEmail('');
-        setRole('cashier');
-        setFormState('form');
-        if (onOpenChange) onOpenChange(false);
-        if (onInvitationSent) onInvitationSent();
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send invitation');
-      setFormState('error');
+      toast.success(`Undangan dikirim ke ${email}`);
+      reset();
+      onOpenChange?.(false);
+      onInvitationSent?.();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : 'Gagal mengirim undangan'
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && !loading) {
-      setEmail('');
-      setRole('cashier');
-      setFormState('form');
-      setError(null);
-      setSuccessMessage('');
-    }
-    if (onOpenChange) onOpenChange(newOpen);
-  };
+  const summary = ROLES.find((option) => option.value === role)?.summary;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-115">
         <DialogHeader>
-          <DialogTitle>Invite Staff Member</DialogTitle>
+          <DialogTitle>Undang staf</DialogTitle>
           <DialogDescription>
-            Invite a new staff member to this business with a specific role
+            Undang anggota baru ke bisnis ini dengan peran tertentu.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {formState === 'success' && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
-            </Alert>
+        <div className="flex flex-col gap-4">
+          {error && (
+            <p className="rounded-md bg-error-light px-3 py-2 text-[13px] text-error">
+              {error}
+            </p>
           )}
 
-          {formState === 'error' && error && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-700">{error}</AlertDescription>
-            </Alert>
-          )}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-ink">Alamat email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="staff@example.com"
+              disabled={loading}
+              className="h-10 w-full rounded-md border border-hairline bg-surface-1 px-3 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </label>
 
-          {formState === 'form' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="staff@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px] font-medium text-ink">Peran</span>
+            <div className="flex gap-2.5">
+              {ROLES.map((option) => {
+                const active = role === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setRole(option.value)}
+                    className={cn(
+                      'flex-1 rounded-lg border p-3 text-left transition-colors',
+                      active
+                        ? 'border-accent bg-accent/10'
+                        : 'border-hairline bg-surface-1 hover:bg-canvas'
+                    )}
+                  >
+                    <span className="flex items-center justify-between">
+                      <span className="text-[13.5px] font-semibold text-ink">
+                        {option.label}
+                      </span>
+                      <span
+                        className={cn(
+                          'size-4 rounded-full border-2',
+                          active ? 'border-accent bg-accent' : 'border-hairline'
+                        )}
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[12px] text-ink-muted">{summary}</p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as UserRole)} disabled={loading}>
-                  <SelectTrigger id="role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="cashier">Cashier</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-600 mt-1">
-                  {role === 'manager' && 'Managers can view analytics, manage products, and process transactions.'}
-                  {role === 'cashier' && 'Cashiers can only process transactions.'}
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => handleOpenChange(false)}
-                  disabled={loading}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={loading || !email.trim()}
-                  className="flex-1"
-                >
-                  {loading ? 'Sending...' : 'Send Invitation'}
-                </Button>
-              </div>
-            </>
-          )}
+          <div className="mt-1 flex gap-3">
+            <button
+              type="button"
+              onClick={() => handleOpenChange(false)}
+              disabled={loading}
+              className="btn-secondary flex-1"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading || !email.trim()}
+              className="btn-accent flex-1 disabled:opacity-50"
+            >
+              {loading ? 'Mengirim…' : 'Kirim undangan'}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
