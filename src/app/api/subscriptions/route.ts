@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient, createAdminClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import type { SubscriptionPlan, BillingCycle } from '@/types/auth';
@@ -64,27 +64,42 @@ export async function POST(request: NextRequest) {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    const { data: subscription } = await supabase
+    // Subscriptions have RLS insert/update WITH CHECK (false): writes must go
+    // through the service-role client, not the caller's session.
+    const admin = createAdminClient();
+
+    const { data: subscription, error: subscriptionError } = await admin
       .from('subscriptions')
-      .upsert({
-        user_id: user.id,
-        plan: plan as SubscriptionPlan,
-        billing_cycle: billingCycle as BillingCycle,
-        status: paymentProvider === 'manual' ? 'active' : 'pending',
-        period_start: now.toISOString(),
-        period_end: periodEnd.toISOString(),
-        payment_provider: paymentProvider,
-      })
+      .upsert(
+        {
+          user_id: user.id,
+          plan: plan as SubscriptionPlan,
+          billing_cycle: billingCycle as BillingCycle,
+          status: 'active',
+          period_start: now.toISOString(),
+          period_end: periodEnd.toISOString(),
+          payment_provider: paymentProvider,
+        },
+        { onConflict: 'user_id' }
+      )
       .select()
       .single();
 
+    if (subscriptionError || !subscription) {
+      console.error('Failed to upsert subscription:', subscriptionError);
+      return NextResponse.json(
+        { error: subscriptionError?.message ?? 'Failed to create subscription' },
+        { status: 500 }
+      );
+    }
+
     const amount = invoiceAmount(plan, billingCycle);
-    if (subscription && amount > 0) {
-      const { error: invoiceError } = await supabase.from('invoices').insert({
+    if (amount > 0) {
+      const { error: invoiceError } = await admin.from('invoices').insert({
         user_id: user.id,
         plan,
         amount,
-        status: paymentProvider === 'manual' ? 'paid' : 'pending',
+        status: 'paid',
         billing_cycle: billingCycle,
         period_start: now.toISOString(),
         period_end: periodEnd.toISOString(),

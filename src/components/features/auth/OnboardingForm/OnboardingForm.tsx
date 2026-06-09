@@ -81,18 +81,18 @@ export function OnboardingForm() {
         role: 'owner',
       });
 
-      const now = new Date();
-      const periodEnd = new Date(now);
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-      await supabaseClient.from('subscriptions').upsert({
-        user_id: user.id,
-        plan: 'starter',
-        billing_cycle: 'monthly',
-        status: 'active',
-        period_start: now.toISOString(),
-        period_end: periodEnd.toISOString(),
-        payment_provider: 'manual',
+      const subscriptionResponse = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: 'starter',
+          billingCycle: 'monthly',
+          paymentProvider: 'manual',
+        }),
       });
+      if (!subscriptionResponse.ok) {
+        throw new Error('Gagal menyiapkan langganan. Coba lagi.');
+      }
 
       router.push('/dashboard');
     } catch (err) {
