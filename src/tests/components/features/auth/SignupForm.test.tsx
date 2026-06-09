@@ -19,13 +19,16 @@ vi.mock('@/lib/supabase', () => ({
 }));
 
 function fillAndSubmit() {
-  fireEvent.change(screen.getByPlaceholderText('Email'), {
+  fireEvent.change(screen.getByPlaceholderText(/sari dewi/i), {
+    target: { value: 'New User' },
+  });
+  fireEvent.change(screen.getByPlaceholderText(/kamu@bisnis\.com/i), {
     target: { value: 'new@user.com' },
   });
-  fireEvent.change(screen.getByPlaceholderText('Password'), {
+  fireEvent.change(screen.getByPlaceholderText(/minimal 8 karakter/i), {
     target: { value: 'Test123456!' },
   });
-  fireEvent.click(screen.getByRole('button', { name: /^sign up$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /buat akun/i }));
 }
 
 describe('SignupForm', () => {
@@ -43,7 +46,7 @@ describe('SignupForm', () => {
     fillAndSubmit();
 
     await waitFor(() => {
-      expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+      expect(screen.getByText(/cek email/i)).toBeInTheDocument();
     });
     expect(screen.getByText(/new@user\.com/)).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();

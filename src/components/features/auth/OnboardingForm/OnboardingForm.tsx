@@ -2,74 +2,92 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  ArrowRight,
+  Check,
+  Store,
+  TriangleAlert,
+  UtensilsCrossed,
+  type LucideIcon,
+} from 'lucide-react';
 import { supabaseClient } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import type { SubscriptionPlan } from '@/types/auth';
+import { Wordmark } from '@/components/layout/Wordmark/Wordmark';
+import { cn } from '@/lib/utils';
 import type { BusinessType } from '@/types/business';
-import { PLANS } from '@/lib/plans';
 import type { OnboardingFormState } from './types';
+
+const INPUT_CLASS =
+  'h-11 w-full rounded-md border border-hairline bg-surface-1 px-3.5 text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:ring-accent';
+
+const TYPES: {
+  value: BusinessType;
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+}[] = [
+  { value: 'retail', icon: Store, title: 'Retail', desc: 'Toko, butik, minimarket' },
+  {
+    value: 'fnb',
+    icon: UtensilsCrossed,
+    title: 'F&B / Restoran',
+    desc: 'Kafe, resto, warung',
+  },
+];
+
+const TIMEZONES = [
+  { value: 'Asia/Jakarta', label: 'WIB (GMT+7)' },
+  { value: 'Asia/Makassar', label: 'WITA (GMT+8)' },
+  { value: 'Asia/Jayapura', label: 'WIT (GMT+9)' },
+];
 
 export function OnboardingForm() {
   const router = useRouter();
   const [state, setState] = useState<OnboardingFormState>({
-    step: 'plan',
-    selectedPlan: 'starter',
-    billingCycle: 'monthly',
     businessName: '',
-    businessType: 'retail',
+    businessType: 'fnb',
+    timezone: 'Asia/Jakarta',
+    currency: 'IDR',
     loading: false,
     error: '',
   });
 
-  function handlePlanSelection() {
-    setState((prev) => ({ ...prev, step: 'business' }));
-  }
-
   async function handleCreateBusiness() {
+    if (!state.businessName.trim()) return;
     setState((prev) => ({ ...prev, loading: true, error: '' }));
-
     try {
       const {
         data: { user },
       } = await supabaseClient.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error('Sesi berakhir, silakan masuk lagi.');
 
-      const { data: business } = await supabaseClient
+      const { data: business, error: businessError } = await supabaseClient
         .from('businesses')
         .insert({
           owner_id: user.id,
-          name: state.businessName,
+          name: state.businessName.trim(),
           type: state.businessType,
+          timezone: state.timezone,
+          currency: state.currency,
         })
         .select()
         .single();
+      if (businessError || !business) {
+        throw new Error(businessError?.message ?? 'Gagal membuat bisnis');
+      }
 
-      if (!business) throw new Error('Failed to create business');
-
-      await supabaseClient
-        .from('business_members')
-        .insert({
-          business_id: business.id,
-          user_id: user.id,
-          role: 'owner',
-        });
+      await supabaseClient.from('business_members').insert({
+        business_id: business.id,
+        user_id: user.id,
+        role: 'owner',
+      });
 
       const now = new Date();
       const periodEnd = new Date(now);
-      if (state.billingCycle === 'yearly') {
-        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-      } else {
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-      }
-
-      await supabaseClient.from('subscriptions').insert({
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      await supabaseClient.from('subscriptions').upsert({
         user_id: user.id,
-        plan: state.selectedPlan,
-        billing_cycle: state.billingCycle,
+        plan: 'starter',
+        billing_cycle: 'monthly',
         status: 'active',
         period_start: now.toISOString(),
         period_end: periodEnd.toISOString(),
@@ -80,112 +98,148 @@ export function OnboardingForm() {
     } catch (err) {
       setState((prev) => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'Failed to complete onboarding',
+        error: err instanceof Error ? err.message : 'Gagal menyelesaikan setup',
+        loading: false,
       }));
-    } finally {
-      setState((prev) => ({ ...prev, loading: false }));
     }
   }
 
-  if (state.step === 'plan') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
-          <p className="text-slate-600">Select the plan that fits your business</p>
-        </div>
-
-        <RadioGroup
-          value={state.selectedPlan}
-          onValueChange={(v) => setState((prev) => ({ ...prev, selectedPlan: v as SubscriptionPlan }))}
-        >
-          {Object.entries(PLANS).map(([plan, config]) => (
-            <Card
-              key={plan}
-              className="p-4 cursor-pointer hover:border-blue-500"
-              onClick={() => setState((prev) => ({ ...prev, selectedPlan: plan as SubscriptionPlan }))}
-            >
-              <div className="flex items-start space-x-3">
-                <RadioGroupItem value={plan} id={plan} />
-                <Label htmlFor={plan} className="flex-1 cursor-pointer">
-                  <div className="font-semibold capitalize">{plan}</div>
-                  <div className="text-sm text-slate-600">
-                    Up to {config.maxBusinesses === Infinity ? 'unlimited' : config.maxBusinesses} businesses
-                  </div>
-                </Label>
-              </div>
-            </Card>
-          ))}
-        </RadioGroup>
-
-        <div className="space-y-2">
-          <Label>Billing Cycle</Label>
-          <RadioGroup
-            value={state.billingCycle}
-            onValueChange={(v) => setState((prev) => ({ ...prev, billingCycle: v as 'monthly' | 'yearly' }))}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="monthly" id="monthly" />
-              <Label htmlFor="monthly">Monthly</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="yearly" id="yearly" />
-              <Label htmlFor="yearly">Yearly (Save 2 months!)</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <Button onClick={handlePlanSelection} className="w-full">
-          Continue
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Create Your First Business</h1>
-        <p className="text-slate-600">You can add more businesses later</p>
-      </div>
-
-      {state.error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-md">{state.error}</div>}
-
-      <Input
-        placeholder="Business Name"
-        value={state.businessName}
-        onChange={(e) => setState((prev) => ({ ...prev, businessName: e.target.value }))}
-        required
-      />
-
-      <div className="space-y-2">
-        <Label>Business Type</Label>
-        <RadioGroup
-          value={state.businessType}
-          onValueChange={(v) => setState((prev) => ({ ...prev, businessType: v as BusinessType }))}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="retail" id="retail" />
-            <Label htmlFor="retail">Retail Store</Label>
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
+      <div className="flex w-full max-w-115 flex-col gap-6">
+        <div className="flex justify-center">
+          <Wordmark size={22} />
+        </div>
+        <div className="flex flex-col gap-6 rounded-2xl border border-hairline bg-surface-1 p-8">
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-ink-subtle">
+              Langkah 1 dari 1
+            </span>
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">
+              Buat bisnis pertamamu
+            </h1>
+            <p className="text-sm text-ink-muted">
+              Atur sekali, langsung bisa jualan.
+            </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="fnb" id="fnb" />
-            <Label htmlFor="fnb">Food & Beverage</Label>
-          </div>
-        </RadioGroup>
-      </div>
 
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setState((prev) => ({ ...prev, step: 'plan' }))}
-          className="flex-1"
-        >
-          Back
-        </Button>
-        <Button onClick={handleCreateBusiness} disabled={state.loading || !state.businessName} className="flex-1">
-          {state.loading ? 'Creating...' : 'Create Business'}
-        </Button>
+          {state.error && (
+            <div className="flex items-start gap-2.5 rounded-lg bg-error-light px-3.5 py-3 text-error">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <span className="text-[13.5px] font-medium">{state.error}</span>
+            </div>
+          )}
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-ink">Nama bisnis</span>
+            <input
+              value={state.businessName}
+              onChange={(event) =>
+                setState((prev) => ({
+                  ...prev,
+                  businessName: event.target.value,
+                }))
+              }
+              placeholder="Warung Kopi Senja"
+              className={INPUT_CLASS}
+            />
+          </label>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-[13px] font-medium text-ink">Tipe bisnis</span>
+            <div className="grid grid-cols-2 gap-3">
+              {TYPES.map((option) => {
+                const Icon = option.icon;
+                const selected = state.businessType === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      setState((prev) => ({
+                        ...prev,
+                        businessType: option.value,
+                      }))
+                    }
+                    className={cn(
+                      'relative flex flex-col gap-2.5 rounded-xl border p-4 text-left transition-colors',
+                      selected
+                        ? 'border-accent bg-accent/10'
+                        : 'border-hairline bg-surface-1 hover:bg-canvas'
+                    )}
+                  >
+                    {selected && (
+                      <span className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-accent text-surface-1">
+                        <Check className="size-3" strokeWidth={3} />
+                      </span>
+                    )}
+                    <span
+                      className={cn(
+                        'flex size-11 items-center justify-center rounded-xl',
+                        selected
+                          ? 'bg-accent text-surface-1'
+                          : 'bg-surface-2 text-ink-muted'
+                      )}
+                    >
+                      <Icon className="size-5" strokeWidth={1.9} />
+                    </span>
+                    <span className="text-[15px] font-semibold text-ink">
+                      {option.title}
+                    </span>
+                    <span className="text-[13px] text-ink-muted">
+                      {option.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <label className="flex flex-1 flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-ink">
+                Zona waktu
+              </span>
+              <select
+                value={state.timezone}
+                onChange={(event) =>
+                  setState((prev) => ({ ...prev, timezone: event.target.value }))
+                }
+                className={INPUT_CLASS}
+              >
+                {TIMEZONES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-1 flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-ink">
+                Mata uang
+              </span>
+              <select
+                value={state.currency}
+                onChange={(event) =>
+                  setState((prev) => ({ ...prev, currency: event.target.value }))
+                }
+                className={INPUT_CLASS}
+              >
+                <option value="IDR">IDR — Rupiah</option>
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCreateBusiness}
+            disabled={state.loading || !state.businessName.trim()}
+            className="btn-accent h-11 w-full gap-2 disabled:opacity-50"
+          >
+            {state.loading ? 'Membuat…' : 'Lanjutkan'}
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

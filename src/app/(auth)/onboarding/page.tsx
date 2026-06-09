@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import { OnboardingForm } from '@/components/features/auth/OnboardingForm/OnboardingForm';
 
 export const metadata: Metadata = {
-  title: 'Get Started - Ngepos',
-  description: 'Complete your Ngepos setup in just a few steps',
+  title: 'Setup Bisnis - Ngepos',
+  description: 'Buat bisnis pertamamu untuk mulai berjualan',
   openGraph: {
-    title: 'Get Started - Ngepos',
-    description: 'Complete your Ngepos setup',
+    title: 'Setup Bisnis - Ngepos',
+    description: 'Buat bisnis pertamamu untuk mulai berjualan',
     url: 'https://ngepos.com/onboarding',
     siteName: 'Ngepos',
   },
