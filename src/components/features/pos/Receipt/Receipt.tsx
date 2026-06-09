@@ -16,6 +16,7 @@ export function Receipt({
   items,
   business,
   amountReceived,
+  tableName,
   onClose,
 }: ReceiptProps) {
   const change = amountReceived != null ? amountReceived - transaction.total : null;
@@ -64,6 +65,9 @@ export function Receipt({
           <span className="text-[11px] text-ink-muted">
             {formatDateTime(transaction.created_at)}
           </span>
+          {tableName && (
+            <span className="text-[11px] text-ink-muted">Meja: {tableName}</span>
+          )}
         </div>
         <div className="border-t border-hairline" />
         <div className="flex flex-col gap-1.5 py-3 text-xs">

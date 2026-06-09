@@ -15,5 +15,6 @@ export interface ReceiptProps {
   items: ReceiptLineItem[];
   business: Business;
   amountReceived?: number;
+  tableName?: string;
   onClose: () => void;
 }

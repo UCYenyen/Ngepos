@@ -29,6 +29,7 @@ interface ReceiptData {
   transaction: Transaction;
   items: ReceiptLineItem[];
   amountReceived?: number;
+  tableName?: string;
 }
 
 export default function POSClient({
@@ -138,7 +139,12 @@ export default function POSClient({
 
       const transaction = (await response.json()) as Transaction;
 
-      setReceipt({ transaction, items, amountReceived });
+      setReceipt({
+        transaction,
+        items,
+        amountReceived,
+        tableName: tables.find((table) => table.id === selectedTableId)?.name,
+      });
       setShowPayment(false);
       cart.clear();
       setSelectedTableId(null);
@@ -203,6 +209,7 @@ export default function POSClient({
               items={receipt.items}
               business={business}
               amountReceived={receipt.amountReceived}
+              tableName={receipt.tableName}
               onClose={() => setReceipt(null)}
             />
           )}
