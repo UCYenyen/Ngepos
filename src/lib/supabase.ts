@@ -20,10 +20,15 @@ export function createServerClient(cookies: ServerCookies) {
     {
       cookies: {
         getAll: () => cookies.getAll(),
-        setAll: (cookiesToSet) =>
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookies.set(name, value, options)
-          ),
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookies.set(name, value, options)
+            );
+          } catch {
+            return;
+          }
+        },
       },
     }
   );

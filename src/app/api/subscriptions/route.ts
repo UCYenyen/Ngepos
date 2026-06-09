@@ -3,7 +3,19 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import type { SubscriptionPlan, BillingCycle } from '@/types/auth';
 
-export async function GET(request: NextRequest) {
+const MONTHLY_PRICE: Record<string, number> = {
+  starter: 0,
+  pro: 149000,
+  enterprise: 0,
+};
+
+function invoiceAmount(plan: string, billingCycle: string): number {
+  const monthly = MONTHLY_PRICE[plan] ?? 0;
+  if (monthly === 0) return 0;
+  return billingCycle === 'yearly' ? Math.round(monthly * 0.8) * 12 : monthly;
+}
+
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(cookieStore);
@@ -65,6 +77,22 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single();
+
+    const amount = invoiceAmount(plan, billingCycle);
+    if (subscription && amount > 0) {
+      const { error: invoiceError } = await supabase.from('invoices').insert({
+        user_id: user.id,
+        plan,
+        amount,
+        status: paymentProvider === 'manual' ? 'paid' : 'pending',
+        billing_cycle: billingCycle,
+        period_start: now.toISOString(),
+        period_end: periodEnd.toISOString(),
+      });
+      if (invoiceError) {
+        console.error('Failed to create invoice:', invoiceError);
+      }
+    }
 
     return NextResponse.json(subscription);
   } catch (error) {

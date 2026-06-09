@@ -6,7 +6,7 @@ import { Building2, Check, CreditCard } from 'lucide-react';
 import { supabaseClient } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PLANS, type PlanName } from '@/lib/plans';
-import { formatDate } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 interface SubscriptionRow {
@@ -17,6 +17,14 @@ interface SubscriptionRow {
 
 interface MemberRow {
   role: string;
+}
+
+interface InvoiceRow {
+  id: string;
+  plan: string;
+  amount: number;
+  status: string;
+  created_at: string;
 }
 
 type Status = 'loading' | 'error' | 'ready';
@@ -55,6 +63,7 @@ export function BillingClient() {
   const [plan, setPlan] = useState<PlanName>('starter');
   const [renewal, setRenewal] = useState<string | null>(null);
   const [ownedCount, setOwnedCount] = useState(0);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [changing, setChanging] = useState<PlanName | null>(null);
 
   useEffect(() => {
@@ -90,6 +99,16 @@ export function BillingClient() {
             (member) => member.role === 'owner'
           ).length
         );
+
+        const { data: invoiceRows } = await supabaseClient
+          .from('invoices')
+          .select('id, plan, amount, status, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(12);
+        if (!alive) return;
+        setInvoices((invoiceRows as InvoiceRow[] | null) ?? []);
+
         setStatus('ready');
       } catch {
         if (alive) setStatus('error');
@@ -242,9 +261,58 @@ export function BillingClient() {
                     Riwayat tagihan
                   </span>
                 </div>
-                <p className="px-5 py-10 text-center text-sm text-ink-muted">
-                  Belum ada riwayat tagihan.
-                </p>
+                {invoices.length === 0 ? (
+                  <p className="px-5 py-10 text-center text-sm text-ink-muted">
+                    Belum ada riwayat tagihan.
+                  </p>
+                ) : (
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="text-left text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                        <th className="px-5 py-2.5">Tanggal</th>
+                        <th className="px-5 py-2.5">Paket</th>
+                        <th className="px-5 py-2.5 text-right">Jumlah</th>
+                        <th className="px-5 py-2.5">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((invoice) => (
+                        <tr
+                          key={invoice.id}
+                          className="border-t border-hairline-soft"
+                        >
+                          <td className="px-5 py-3 text-[13px] text-ink-muted">
+                            {formatDate(invoice.created_at)}
+                          </td>
+                          <td className="px-5 py-3 text-[13px] capitalize text-ink">
+                            {invoice.plan}
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <span className="font-mono text-[13px] tabular-nums text-ink">
+                              {formatCurrency(invoice.amount)}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span
+                              className={cn(
+                                'badge',
+                                invoice.status === 'paid'
+                                  ? 'badge-success'
+                                  : 'bg-surface-2 text-ink-muted'
+                              )}
+                            >
+                              {invoice.status === 'paid'
+                                ? 'Lunas'
+                                : invoice.status === 'pending'
+                                  ? 'Menunggu'
+                                  : 'Gagal'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
 
