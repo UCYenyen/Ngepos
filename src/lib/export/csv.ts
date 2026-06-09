@@ -10,34 +10,79 @@ export interface CsvTransactionRow {
   total: number;
 }
 
+function escapeCsvValue(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function toCsv(header: string[], rows: (string | number)[][]): string {
+  const lines = rows.map((row) =>
+    row.map((value) => escapeCsvValue(String(value))).join(',')
+  );
+  return [header.join(','), ...lines].join('\n');
+}
+
 export function transactionsToCsv(rows: CsvTransactionRow[]): string {
-  const header = [
-    'Transaction ID',
-    'Date',
-    'Cashier',
-    'Payment Method',
-    'Status',
-    'Subtotal',
-    'Discount',
-    'Tax',
-    'Total',
-  ];
-  const escape = (value: string): string =>
-    /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-  const lines = rows.map((r) =>
+  return toCsv(
     [
+      'Transaction ID',
+      'Date',
+      'Cashier',
+      'Payment Method',
+      'Status',
+      'Subtotal',
+      'Discount',
+      'Tax',
+      'Total',
+    ],
+    rows.map((r) => [
       r.id,
       r.created_at,
       r.cashier_name,
       r.payment_method,
       r.payment_status,
-      String(r.subtotal),
-      String(r.discount_amount),
-      String(r.tax_amount),
-      String(r.total),
-    ]
-      .map(escape)
-      .join(',')
+      r.subtotal,
+      r.discount_amount,
+      r.tax_amount,
+      r.total,
+    ])
   );
-  return [header.join(','), ...lines].join('\n');
+}
+
+export interface HistoryCsvRow {
+  id: string;
+  created_at: string;
+  payment_method: string;
+  payment_status: string;
+  item_count: number;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total: number;
+}
+
+export function historyTransactionsToCsv(rows: HistoryCsvRow[]): string {
+  return toCsv(
+    [
+      'ID Transaksi',
+      'Tanggal',
+      'Metode',
+      'Status',
+      'Jumlah Item',
+      'Subtotal',
+      'Diskon',
+      'Pajak',
+      'Total',
+    ],
+    rows.map((r) => [
+      r.id,
+      r.created_at,
+      r.payment_method,
+      r.payment_status,
+      r.item_count,
+      r.subtotal,
+      r.discount_amount,
+      r.tax_amount,
+      r.total,
+    ])
+  );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Receipt as ReceiptIcon, RefreshCw } from 'lucide-react';
+import { Download, Receipt as ReceiptIcon, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Receipt } from '@/components/features/pos/Receipt/Receipt';
 import { formatCurrency } from '@/lib/format';
+import {
+  historyTransactionsToCsv,
+  type HistoryCsvRow,
+} from '@/lib/export/csv';
 import { cn } from '@/lib/utils';
 import type {
   PaymentMethod,
@@ -160,6 +164,29 @@ export function TransactionHistoryClient({
     .reduce((sum, transaction) => sum + transaction.total, 0);
   const activeLabel = FILTERS.find((item) => item.key === filter)?.label ?? '';
 
+  function handleExport() {
+    if (filtered.length === 0) return;
+    const rows: HistoryCsvRow[] = filtered.map((transaction) => ({
+      id: transaction.id,
+      created_at: transaction.created_at,
+      payment_method: PAYMENT_LABEL[transaction.payment_method],
+      payment_status: STATUS_META[transaction.payment_status].label,
+      item_count: transaction.transaction_items?.length ?? 0,
+      subtotal: transaction.subtotal,
+      discount_amount: transaction.discount_amount,
+      tax_amount: transaction.tax_amount,
+      total: transaction.total,
+    }));
+    const csv = historyTransactionsToCsv(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `riwayat-${filter}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -171,22 +198,33 @@ export function TransactionHistoryClient({
             {formatCurrency(paidTotal)}
           </span>
         </div>
-        <div className="flex gap-1.5">
-          {FILTERS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setFilter(item.key)}
-              className={cn(
-                'h-8 rounded-full border px-3 text-[12.5px] font-medium transition-colors',
-                filter === item.key
-                  ? 'border-ink bg-ink text-surface-1'
-                  : 'border-hairline bg-surface-1 text-ink-muted hover:bg-canvas hover:text-ink'
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1.5">
+            {FILTERS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setFilter(item.key)}
+                className={cn(
+                  'h-8 rounded-full border px-3 text-[12.5px] font-medium transition-colors',
+                  filter === item.key
+                    ? 'border-ink bg-ink text-surface-1'
+                    : 'border-hairline bg-surface-1 text-ink-muted hover:bg-canvas hover:text-ink'
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="btn-secondary h-8 gap-1.5 px-3 text-[12.5px] disabled:opacity-50"
+          >
+            <Download className="size-3.5" />
+            CSV
+          </button>
         </div>
       </div>
 

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { transactionsToCsv, type CsvTransactionRow } from '@/lib/export/csv';
+import {
+  transactionsToCsv,
+  historyTransactionsToCsv,
+  type CsvTransactionRow,
+  type HistoryCsvRow,
+} from '@/lib/export/csv';
 
 const header =
   'Transaction ID,Date,Cashier,Payment Method,Status,Subtotal,Discount,Tax,Total';
@@ -53,5 +58,41 @@ describe('transactionsToCsv', () => {
   it('returns exactly the header line for empty rows with no trailing newline', () => {
     const csv = transactionsToCsv([]);
     expect(csv).toBe(header);
+  });
+});
+
+const historyHeader =
+  'ID Transaksi,Tanggal,Metode,Status,Jumlah Item,Subtotal,Diskon,Pajak,Total';
+
+function makeHistoryRow(overrides: Partial<HistoryCsvRow> = {}): HistoryCsvRow {
+  return {
+    id: 'txn-2',
+    created_at: '2026-06-09T10:00:00.000Z',
+    payment_method: 'Tunai',
+    payment_status: 'Lunas',
+    item_count: 3,
+    subtotal: 30000,
+    discount_amount: 5000,
+    tax_amount: 2500,
+    total: 27500,
+    ...overrides,
+  };
+}
+
+describe('historyTransactionsToCsv', () => {
+  it('puts the Indonesian header row first', () => {
+    const csv = historyTransactionsToCsv([makeHistoryRow()]);
+    expect(csv.split('\n')[0]).toBe(historyHeader);
+  });
+
+  it('renders all 9 fields of a row in order', () => {
+    const csv = historyTransactionsToCsv([makeHistoryRow()]);
+    expect(csv.split('\n')[1]).toBe(
+      'txn-2,2026-06-09T10:00:00.000Z,Tunai,Lunas,3,30000,5000,2500,27500'
+    );
+  });
+
+  it('returns only the header for empty rows', () => {
+    expect(historyTransactionsToCsv([])).toBe(historyHeader);
   });
 });
