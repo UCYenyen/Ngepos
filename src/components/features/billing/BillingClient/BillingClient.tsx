@@ -6,6 +6,7 @@ import { Building2, Check, CreditCard } from 'lucide-react';
 import { supabaseClient } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PLANS, type PlanName } from '@/lib/plans';
+import { isSubscriptionActive } from '@/lib/subscription';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -101,7 +102,9 @@ export function BillingClient() {
         ]);
         if (!alive) return;
         const subscription = sub as SubscriptionRow | null;
-        const active = subscription && subscription.status === 'active';
+        const active =
+          subscription &&
+          isSubscriptionActive(subscription.status, subscription.period_end);
         setPlan(active ? subscription.plan : 'starter');
         setRenewal(active ? subscription.period_end : null);
         setOwnedCount(

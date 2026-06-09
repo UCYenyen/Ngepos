@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlanConfig } from '@/lib/plans';
+import { isSubscriptionActive } from '@/lib/subscription';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +25,10 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (!subscription || subscription.status !== 'active') {
+    if (
+      !subscription ||
+      !isSubscriptionActive(subscription.status, subscription.period_end)
+    ) {
       return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
     }
 

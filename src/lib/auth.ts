@@ -4,6 +4,7 @@ import { createServerClient, createAdminClient } from './supabase';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getPlanConfig, type PlanConfig, type PlanName } from '@/lib/plans';
+import { isSubscriptionActive } from '@/lib/subscription';
 import type { Subscription } from '@/types/auth';
 
 export async function getCurrentUser() {
@@ -48,11 +49,16 @@ export const getBusinessPlanFeatures = cache(
 
       const { data: subscription } = await admin
         .from('subscriptions')
-        .select('plan, status')
+        .select('plan, status, period_end')
         .eq('user_id', business.owner_id)
-        .maybeSingle<{ plan: PlanName; status: string }>();
+        .maybeSingle<{ plan: PlanName; status: string; period_end: string | null }>();
 
-      if (!subscription || subscription.status !== 'active') return restrictive;
+      if (
+        !subscription ||
+        !isSubscriptionActive(subscription.status, subscription.period_end)
+      ) {
+        return restrictive;
+      }
       return getPlanConfig(subscription.plan).features;
     } catch (error) {
       console.error('Error resolving business plan features:', error);
@@ -75,11 +81,16 @@ export const getBusinessPlan = cache(
 
       const { data: subscription } = await admin
         .from('subscriptions')
-        .select('plan, status')
+        .select('plan, status, period_end')
         .eq('user_id', business.owner_id)
-        .maybeSingle<{ plan: PlanName; status: string }>();
+        .maybeSingle<{ plan: PlanName; status: string; period_end: string | null }>();
 
-      if (!subscription || subscription.status !== 'active') return 'starter';
+      if (
+        !subscription ||
+        !isSubscriptionActive(subscription.status, subscription.period_end)
+      ) {
+        return 'starter';
+      }
       return subscription.plan;
     } catch (error) {
       console.error('Error resolving business plan:', error);
