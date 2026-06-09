@@ -14,6 +14,7 @@ interface SubscriptionRow {
   plan: PlanName;
   status: string;
   period_end: string | null;
+  renewal_invoice_url: string | null;
 }
 
 interface MemberRow {
@@ -63,6 +64,7 @@ export function BillingClient() {
   const [status, setStatus] = useState<Status>('loading');
   const [plan, setPlan] = useState<PlanName>('starter');
   const [renewal, setRenewal] = useState<string | null>(null);
+  const [renewalUrl, setRenewalUrl] = useState<string | null>(null);
   const [ownedCount, setOwnedCount] = useState(0);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [changing, setChanging] = useState<PlanName | null>(null);
@@ -92,7 +94,7 @@ export function BillingClient() {
         const [{ data: sub }, { data: members }] = await Promise.all([
           supabaseClient
             .from('subscriptions')
-            .select('plan, status, period_end')
+            .select('plan, status, period_end, renewal_invoice_url')
             .eq('user_id', user.id)
             .maybeSingle(),
           supabaseClient
@@ -107,6 +109,7 @@ export function BillingClient() {
           isSubscriptionActive(subscription.status, subscription.period_end);
         setPlan(active ? subscription.plan : 'starter');
         setRenewal(active ? subscription.period_end : null);
+        setRenewalUrl(subscription?.renewal_invoice_url ?? null);
         setOwnedCount(
           ((members as MemberRow[] | null) ?? []).filter(
             (member) => member.role === 'owner'
@@ -188,6 +191,27 @@ export function BillingClient() {
             Kelola paket, penggunaan, dan metode pembayaranmu.
           </p>
         </header>
+
+        {renewalUrl && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent bg-accent/5 px-5 py-4">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[14.5px] font-semibold text-ink">
+                Tagihan perpanjangan menunggu pembayaran
+              </span>
+              <span className="text-[13px] text-ink-muted">
+                Bayar sebelum periode berakhir agar paketmu tetap aktif.
+              </span>
+            </div>
+            <a
+              href={renewalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-accent h-10 px-5"
+            >
+              Perpanjang sekarang
+            </a>
+          </div>
+        )}
 
         {status === 'loading' && (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.5fr_1fr]">
