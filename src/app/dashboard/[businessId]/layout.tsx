@@ -40,7 +40,12 @@ export default async function BusinessLayout({
   )
     .map((entry) => (Array.isArray(entry) ? entry[0] : entry))
     .filter((entry): entry is Business => Boolean(entry))
-    .map((entry) => ({ id: entry.id, name: entry.name, type: entry.type }));
+    .map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      type: entry.type,
+      logoUrl: entry.logo_url ?? null,
+    }));
 
   const displayName =
     (user?.user_metadata?.full_name as string | undefined) ??
@@ -54,6 +59,7 @@ export default async function BusinessLayout({
           id: typedBusiness.id,
           name: typedBusiness.name,
           type: typedBusiness.type,
+          logoUrl: typedBusiness.logo_url ?? null,
         }}
         businesses={businesses}
         items={items}

@@ -6,6 +6,7 @@ import { useCart } from '@/hooks/pos/useCart';
 import { ProductSelector } from '../ProductSelector/ProductSelector';
 import { Cart } from '../Cart/Cart';
 import { PaymentForm } from '../PaymentForm/PaymentForm';
+import { GatewayCheckout } from '../GatewayCheckout/GatewayCheckout';
 import { Receipt } from '../Receipt/Receipt';
 import { VariantPicker } from '../VariantPicker/VariantPicker';
 import { ParkedOrdersDialog } from '../ParkedOrdersDialog/ParkedOrdersDialog';
@@ -39,6 +40,13 @@ interface ReceiptData {
   tableName?: string;
 }
 
+interface GatewayCheckoutData {
+  transactionId: string;
+  invoiceUrl: string;
+  total: number;
+  receipt: ReceiptData;
+}
+
 export default function POSClient({
   businessId,
   business,
@@ -47,6 +55,8 @@ export default function POSClient({
   const cart = useCart();
   const [showPayment, setShowPayment] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [gatewayCheckout, setGatewayCheckout] =
+    useState<GatewayCheckoutData | null>(null);
   const [loading, setLoading] = useState(false);
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [tables, setTables] = useState<Table[]>([]);
@@ -239,6 +249,7 @@ export default function POSClient({
       price: product.price,
       quantity: 1,
       discount_amount: 0,
+      image_url: product.image_url ?? null,
     });
   }
 
@@ -250,6 +261,7 @@ export default function POSClient({
       price: product.price + variant.price_modifier,
       quantity: 1,
       discount_amount: 0,
+      image_url: product.image_url ?? null,
     });
     setVariantProduct(null);
   }
@@ -302,14 +314,17 @@ export default function POSClient({
         throw new Error(data?.error ?? 'Gagal membuat transaksi');
       }
 
-      const transaction = (await response.json()) as Transaction;
+      const transaction = (await response.json()) as Transaction & {
+        gateway?: { invoiceUrl: string };
+      };
 
-      setReceipt({
+      const receiptData: ReceiptData = {
         transaction,
         items,
         amountReceived,
         tableName: tables.find((table) => table.id === selectedTableId)?.name,
-      });
+      };
+
       setShowPayment(false);
       cart.clear();
       if (selectedTableId) {
@@ -321,6 +336,17 @@ export default function POSClient({
       }
       setSelectedTableId(null);
       setActiveTableOrderId(null);
+
+      if (transaction.gateway?.invoiceUrl) {
+        setGatewayCheckout({
+          transactionId: transaction.id,
+          invoiceUrl: transaction.gateway.invoiceUrl,
+          total: transaction.total,
+          receipt: receiptData,
+        });
+      } else {
+        setReceipt(receiptData);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Pembayaran gagal');
     } finally {
@@ -374,6 +400,31 @@ export default function POSClient({
             onSubmit={handlePayment}
             loading={loading}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={gatewayCheckout !== null}
+        onOpenChange={(open) => {
+          if (!open) setGatewayCheckout(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-115">
+          <DialogHeader>
+            <DialogTitle>Pembayaran Xendit</DialogTitle>
+          </DialogHeader>
+          {gatewayCheckout && (
+            <GatewayCheckout
+              transactionId={gatewayCheckout.transactionId}
+              invoiceUrl={gatewayCheckout.invoiceUrl}
+              total={gatewayCheckout.total}
+              onPaid={() => {
+                setReceipt(gatewayCheckout.receipt);
+                setGatewayCheckout(null);
+              }}
+              onCancel={() => setGatewayCheckout(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

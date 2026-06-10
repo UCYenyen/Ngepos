@@ -4,6 +4,7 @@ export interface SwitcherBusiness {
   id: string;
   name: string;
   type: BusinessType;
+  logoUrl?: string | null;
 }
 
 export interface BusinessSwitcherProps {

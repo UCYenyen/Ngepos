@@ -4,7 +4,14 @@ import { useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import { AlertTriangle, Building2, Mail, QrCode, Upload } from 'lucide-react';
+import {
+  AlertTriangle,
+  Building2,
+  CreditCard,
+  Mail,
+  QrCode,
+  Upload,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { ReportSettings } from '../ReportSettings/ReportSettings';
+import { XenditConnect } from '../XenditConnect/XenditConnect';
 import { useAssetUpload, type AssetKind } from '@/hooks/business/useAssetUpload';
 import type { SettingsClientProps } from './types';
 
@@ -255,6 +263,14 @@ export function SettingsClient({
             />
           </label>
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        icon={CreditCard}
+        title="Pembayaran — Xendit"
+        description="Hubungkan akun Xendit untuk menerima pembayaran gateway langsung ke rekeningmu."
+      >
+        <XenditConnect businessId={business.id} />
       </SettingsSection>
 
       <SettingsSection

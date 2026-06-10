@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, Users } from 'lucide-react';
-import { InitialAvatar } from '@/components/common/InitialAvatar/InitialAvatar';
+import { BusinessAvatar } from '@/components/common/BusinessAvatar/BusinessAvatar';
 import { getAvatarTint } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/types/business';
@@ -17,13 +17,15 @@ export function BusinessCard({
   name,
   type,
   role,
+  logoUrl,
   memberCount,
 }: BusinessCardProps) {
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-hairline bg-surface-1 p-5">
       <div className="flex items-start justify-between">
-        <InitialAvatar
+        <BusinessAvatar
           name={name}
+          logoUrl={logoUrl}
           size={48}
           tint={getAvatarTint(id)}
           className="text-lg"

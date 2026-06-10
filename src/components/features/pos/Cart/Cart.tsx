@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
   BookmarkPlus,
   Inbox,
@@ -250,7 +251,17 @@ interface CartLineProps {
 function CartLine({ item, onDecrease, onIncrease, onRemove }: CartLineProps) {
   return (
     <div className="flex items-start gap-3">
-      <div className="size-10 shrink-0 rounded-md bg-surface-2" />
+      <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-surface-2">
+        {item.image_url && (
+          <Image
+            src={item.image_url}
+            alt={item.name}
+            fill
+            sizes="40px"
+            className="object-cover"
+          />
+        )}
+      </div>
       <div className="flex flex-1 flex-col gap-1.5">
         <div className="flex items-start justify-between gap-2">
           <span className="text-[13px] font-semibold text-ink">{item.name}</span>

@@ -1,4 +1,9 @@
 const XENDIT_INVOICE_API = 'https://api.xendit.co/v2/invoices';
+const XENDIT_BALANCE_API = 'https://api.xendit.co/balance';
+
+function basicAuth(secretKey: string): string {
+  return `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`;
+}
 
 export interface XenditInvoice {
   id: string;
@@ -20,21 +25,33 @@ export function isXenditConfigured(): boolean {
   return Boolean(process.env.XENDIT_SECRET_KEY);
 }
 
+// Validates a Xendit secret key by calling the balance endpoint. Used when a
+// business connects its own account so we never store a key that won't work.
+export async function validateXenditKey(secretKey: string): Promise<boolean> {
+  try {
+    const response = await fetch(XENDIT_BALANCE_API, {
+      headers: { Authorization: basicAuth(secretKey) },
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function createXenditInvoice(
-  params: CreateXenditInvoiceParams
+  params: CreateXenditInvoiceParams,
+  secretKeyOverride?: string
 ): Promise<XenditInvoice> {
-  const secretKey = process.env.XENDIT_SECRET_KEY;
+  const secretKey = secretKeyOverride ?? process.env.XENDIT_SECRET_KEY;
   if (!secretKey) {
     throw new Error('XENDIT_SECRET_KEY is not configured');
   }
-
-  const auth = Buffer.from(`${secretKey}:`).toString('base64');
 
   const response = await fetch(XENDIT_INVOICE_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Basic ${auth}`,
+      Authorization: basicAuth(secretKey),
     },
     body: JSON.stringify({
       external_id: params.externalId,
@@ -71,15 +88,15 @@ export async function createXenditInvoice(
 // status (PAID / SETTLED / PENDING / EXPIRED) or null. Outbound call, so it
 // works from localhost where the inbound webhook can't reach the app.
 export async function getXenditInvoiceStatus(
-  externalId: string
+  externalId: string,
+  secretKeyOverride?: string
 ): Promise<string | null> {
-  const secretKey = process.env.XENDIT_SECRET_KEY;
+  const secretKey = secretKeyOverride ?? process.env.XENDIT_SECRET_KEY;
   if (!secretKey) return null;
 
-  const auth = Buffer.from(`${secretKey}:`).toString('base64');
   const response = await fetch(
     `${XENDIT_INVOICE_API}?external_id=${encodeURIComponent(externalId)}`,
-    { headers: { Authorization: `Basic ${auth}` } }
+    { headers: { Authorization: basicAuth(secretKey) } }
   );
 
   if (!response.ok) return null;

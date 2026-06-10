@@ -15,6 +15,7 @@ interface DashboardBusiness {
   name: string;
   type: Business['type'];
   role: UserRole;
+  logoUrl: string | null;
 }
 
 interface MemberRow {
@@ -68,6 +69,7 @@ export function BusinessesList() {
               name: biz.name,
               type: biz.type,
               role: member.role,
+              logoUrl: biz.logo_url ?? null,
             } satisfies DashboardBusiness;
           })
           .filter((b): b is DashboardBusiness => b !== null);

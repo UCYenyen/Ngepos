@@ -5,5 +5,6 @@ export interface BusinessCardProps {
   name: string;
   type: BusinessType;
   role: UserRole;
+  logoUrl?: string | null;
   memberCount?: number;
 }

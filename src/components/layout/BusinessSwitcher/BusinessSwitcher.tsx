@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { InitialAvatar } from '@/components/common/InitialAvatar/InitialAvatar';
+import { BusinessAvatar } from '@/components/common/BusinessAvatar/BusinessAvatar';
 import { getAvatarTint } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { BusinessSwitcherProps, SwitcherBusiness } from './types';
@@ -26,7 +26,12 @@ export function BusinessSwitcher({ current, businesses }: BusinessSwitcherProps)
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="flex w-full items-center justify-between gap-2 rounded-lg border border-hairline bg-surface-1 p-2 text-left transition-colors hover:bg-canvas">
         <span className="flex min-w-0 items-center gap-2.5">
-          <InitialAvatar name={current.name} size={32} tint={getAvatarTint(current.id)} />
+          <BusinessAvatar
+            name={current.name}
+            logoUrl={current.logoUrl}
+            size={32}
+            tint={getAvatarTint(current.id)}
+          />
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-semibold text-ink">
               {current.name}
@@ -58,8 +63,9 @@ export function BusinessSwitcher({ current, businesses }: BusinessSwitcherProps)
                 active && 'bg-surface-2'
               )}
             >
-              <InitialAvatar
+              <BusinessAvatar
                 name={business.name}
+                logoUrl={business.logoUrl}
                 size={30}
                 tint={getAvatarTint(business.id)}
               />

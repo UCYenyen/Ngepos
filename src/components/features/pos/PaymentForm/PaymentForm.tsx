@@ -170,8 +170,8 @@ export function PaymentForm({
 
       {method === 'gateway' && (
         <div className="rounded-lg bg-canvas px-4 py-4 text-[13px] text-ink-muted">
-          Pembayaran diproses lewat gateway. Pelanggan diarahkan ke halaman
-          pembayaran setelah konfirmasi.
+          Tagihan Xendit akan dibuat dan kode QR-nya ditampilkan untuk discan
+          pelanggan. Transaksi otomatis lunas setelah pembayaran diterima.
         </div>
       )}
 
@@ -185,7 +185,9 @@ export function PaymentForm({
           ? 'Memproses…'
           : method === 'qris'
             ? 'Tandai lunas'
-            : 'Selesaikan pembayaran'}
+            : method === 'gateway'
+              ? 'Buat tagihan Xendit'
+              : 'Selesaikan pembayaran'}
       </button>
     </div>
   );

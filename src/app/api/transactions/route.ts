@@ -1,7 +1,9 @@
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient, createAdminClient } from '@/lib/supabase';
 import { getLowStockItems } from '@/lib/inventory-alerts';
 import { sendLowStockAlert } from '@/lib/notifications/email';
 import { resolveBusinessOwnerEmail } from '@/lib/notifications/recipient';
+import { createXenditInvoice, isXenditConfigured } from '@/lib/xendit';
+import { getBusinessXenditKey } from '@/lib/payments';
 import type { InventoryProduct } from '@/types/inventory';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
@@ -200,6 +202,48 @@ export async function POST(request: NextRequest) {
     }
 
     await dispatchLowStockAlertForSoldItems(supabase, businessId, items);
+
+    const businessXenditKey = createdId
+      ? await getBusinessXenditKey(businessId)
+      : null;
+
+    if (
+      createdId &&
+      payment_method === 'gateway' &&
+      (businessXenditKey || isXenditConfigured())
+    ) {
+      try {
+        const externalId = `pos-${createdId}`;
+        const origin = request.nextUrl.origin;
+        const redirectUrl = `${origin}/dashboard/${businessId}/pos`;
+        const invoice = await createXenditInvoice(
+          {
+            externalId,
+            amount: Math.round(total),
+            payerEmail: user.email ?? 'pos@ngepos.app',
+            description: `Pembayaran POS ${externalId}`,
+            successRedirectUrl: redirectUrl,
+            failureRedirectUrl: redirectUrl,
+          },
+          businessXenditKey ?? undefined
+        );
+        const admin = createAdminClient();
+        await admin
+          .from('transactions')
+          .update({ gateway_reference: externalId })
+          .eq('id', createdId);
+        return NextResponse.json({
+          ...(transaction as Record<string, unknown>),
+          gateway: { invoiceUrl: invoice.invoiceUrl },
+        });
+      } catch (gatewayError) {
+        console.error('Failed to create Xendit invoice:', gatewayError);
+        return NextResponse.json(
+          { error: 'Gagal membuat tagihan Xendit' },
+          { status: 502 }
+        );
+      }
+    }
 
     return NextResponse.json(transaction);
   } catch (error) {
