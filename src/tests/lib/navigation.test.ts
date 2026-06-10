@@ -8,6 +8,7 @@ const proFeatures: PlanConfig['features'] = {
   analytics: true,
   automatedReports: true,
   paymentGateway: true,
+  onlineStore: true,
 };
 
 const starterFeatures: PlanConfig['features'] = {
@@ -16,6 +17,7 @@ const starterFeatures: PlanConfig['features'] = {
   analytics: false,
   automatedReports: false,
   paymentGateway: false,
+  onlineStore: false,
 };
 
 describe('getNavItems', () => {
@@ -30,6 +32,7 @@ describe('getNavItems', () => {
     expect(new Set(items.map((item) => item.key))).toEqual(
       new Set([
         'pos',
+        'orders',
         'products',
         'inventory',
         'staff',
@@ -42,7 +45,7 @@ describe('getNavItems', () => {
     expect(items.every((item) => !item.locked)).toBe(true);
   });
 
-  it('returns only POS for a cashier on pro features', () => {
+  it('returns POS and online orders for a cashier on pro features', () => {
     const items = getNavItems({
       businessId: 'biz-1',
       role: 'cashier',
@@ -50,7 +53,7 @@ describe('getNavItems', () => {
       features: proFeatures,
     });
 
-    expect(items.map((item) => item.key)).toEqual(['pos']);
+    expect(items.map((item) => item.key)).toEqual(['pos', 'orders']);
   });
 
   it('returns POS, Inventory, Analytics, and Reports but not Staff or Settings for a manager on pro features', () => {
@@ -84,6 +87,7 @@ describe('getNavItems', () => {
     expect(new Set(byKey.keys())).toEqual(
       new Set([
         'pos',
+        'orders',
         'products',
         'inventory',
         'staff',
@@ -93,6 +97,7 @@ describe('getNavItems', () => {
         'settings',
       ])
     );
+    expect(byKey.get('orders')?.locked).toBe(true);
     expect(byKey.get('inventory')?.locked).toBe(true);
     expect(byKey.get('analytics')?.locked).toBe(true);
     expect(byKey.get('reports')?.locked).toBe(true);

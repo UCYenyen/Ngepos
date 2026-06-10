@@ -1,9 +1,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { extractStorefrontSlug } from '@/lib/site';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/billing', '/onboarding', '/account'];
 
 export async function proxy(request: NextRequest) {
+  const storefrontSlug = extractStorefrontSlug(request.headers.get('host') ?? '');
+  if (storefrontSlug) {
+    if (request.nextUrl.pathname.startsWith('/store/')) {
+      return NextResponse.next();
+    }
+    const url = request.nextUrl.clone();
+    const rest = url.pathname === '/' ? '' : url.pathname;
+    url.pathname = `/store/${storefrontSlug}${rest}`;
+    return NextResponse.rewrite(url);
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

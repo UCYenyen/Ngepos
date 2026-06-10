@@ -52,6 +52,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
       <SettingsClient
         business={typedBusiness}
         planHasAutomatedReports={features.automatedReports}
+        planHasOnlineStore={features.onlineStore}
       />
     </PageShell>
   );

@@ -11,6 +11,7 @@ export interface PlanConfig {
     analytics: boolean;
     automatedReports: boolean;
     paymentGateway: boolean;
+    onlineStore: boolean;
   };
 }
 
@@ -25,6 +26,7 @@ export const PLANS: Record<PlanName, PlanConfig> = {
       analytics: false,
       automatedReports: false,
       paymentGateway: false,
+      onlineStore: false,
     },
   },
   pro: {
@@ -37,6 +39,7 @@ export const PLANS: Record<PlanName, PlanConfig> = {
       analytics: true,
       automatedReports: true,
       paymentGateway: true,
+      onlineStore: true,
     },
   },
   enterprise: {
@@ -49,6 +52,7 @@ export const PLANS: Record<PlanName, PlanConfig> = {
       analytics: true,
       automatedReports: true,
       paymentGateway: true,
+      onlineStore: true,
     },
   },
 };

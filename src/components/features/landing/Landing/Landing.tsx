@@ -32,6 +32,32 @@ const NAV_LINKS = [
   { label: 'FAQ', href: '#faq' },
 ];
 
+const CONTACT = {
+  email: 'halo@ngepos.com',
+  whatsapp: 'https://wa.me/6281234567890',
+  phone: '+6281234567890',
+};
+
+const FOOTER_COLUMNS: { heading: string; links: { label: string; href: string }[] }[] = [
+  {
+    heading: 'Produk',
+    links: [
+      { label: 'Fitur', href: '#fitur' },
+      { label: 'Harga', href: '#harga' },
+      { label: 'Untuk F&B', href: '#fnb' },
+      { label: 'Untuk Retail', href: '#retail' },
+    ],
+  },
+  {
+    heading: 'Bantuan',
+    links: [
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Kontak', href: `mailto:${CONTACT.email}` },
+      { label: 'WhatsApp', href: CONTACT.whatsapp },
+    ],
+  },
+];
+
 const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: ShoppingCart,
@@ -529,24 +555,26 @@ export function Landing({ isAuthenticated }: { isAuthenticated: boolean }) {
                 Kasir digital untuk UMKM Indonesia.
               </p>
             </div>
-            {[
-              ['Produk', ['Fitur', 'Harga', 'POS', 'Analitik']],
-              ['Perusahaan', ['Tentang', 'Karier', 'Blog', 'Kontak']],
-              ['Sumber daya', ['Bantuan', 'Panduan', 'API', 'Status']],
-              ['Legal', ['Privasi', 'Ketentuan', 'Keamanan']],
-            ].map(([heading, items]) => (
-              <div key={heading as string} className="flex flex-1 flex-col gap-3">
+            {FOOTER_COLUMNS.map(({ heading, links }) => (
+              <div key={heading} className="flex flex-1 flex-col gap-3">
                 <span className="text-[13.5px] font-semibold text-ink">
                   {heading}
                 </span>
-                {(items as string[]).map((item) => (
-                  <span
-                    key={item}
-                    className="cursor-pointer text-[13.5px] text-ink-muted hover:text-ink"
-                  >
-                    {item}
-                  </span>
-                ))}
+                {links.map(({ label, href }) => {
+                  const external = href.startsWith('http');
+                  return (
+                    <a
+                      key={label}
+                      href={href}
+                      {...(external
+                        ? { target: '_blank', rel: 'noopener noreferrer' }
+                        : {})}
+                      className="text-[13.5px] text-ink-muted transition-colors hover:text-ink"
+                    >
+                      {label}
+                    </a>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -556,9 +584,29 @@ export function Landing({ isAuthenticated }: { isAuthenticated: boolean }) {
               © 2026 Ngepos. Dibuat di Indonesia.
             </span>
             <div className="flex items-center gap-3 text-ink-subtle">
-              <MessageCircle className="size-4.5" />
-              <Mail className="size-4.5" />
-              <Phone className="size-4.5" />
+              <a
+                href={CONTACT.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                className="transition-colors hover:text-ink"
+              >
+                <MessageCircle className="size-4.5" />
+              </a>
+              <a
+                href={`mailto:${CONTACT.email}`}
+                aria-label="Email"
+                className="transition-colors hover:text-ink"
+              >
+                <Mail className="size-4.5" />
+              </a>
+              <a
+                href={`tel:${CONTACT.phone}`}
+                aria-label="Telepon"
+                className="transition-colors hover:text-ink"
+              >
+                <Phone className="size-4.5" />
+              </a>
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   CreditCard,
   Mail,
   QrCode,
+  Store,
   Upload,
 } from 'lucide-react';
 import {
@@ -19,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
+import { StorefrontSettings } from '../StorefrontSettings/StorefrontSettings';
 import { ReportSettings } from '../ReportSettings/ReportSettings';
 import { XenditConnect } from '../XenditConnect/XenditConnect';
 import { useAssetUpload, type AssetKind } from '@/hooks/business/useAssetUpload';
@@ -36,6 +38,7 @@ const INPUT_CLASS =
 export function SettingsClient({
   business,
   planHasAutomatedReports,
+  planHasOnlineStore,
 }: SettingsClientProps) {
   const router = useRouter();
   const { uploading, upload } = useAssetUpload();
@@ -271,6 +274,18 @@ export function SettingsClient({
         description="Hubungkan akun Xendit untuk menerima pembayaran gateway langsung ke rekeningmu."
       >
         <XenditConnect businessId={business.id} />
+      </SettingsSection>
+
+      <SettingsSection
+        icon={Store}
+        title="Storefront online"
+        description="Publikasikan menu di subdomain sendiri agar pelanggan bisa memesan tanpa login."
+      >
+        <StorefrontSettings
+          businessId={business.id}
+          initialSubdomain={business.subdomain ?? null}
+          planHasOnlineStore={planHasOnlineStore}
+        />
       </SettingsSection>
 
       <SettingsSection

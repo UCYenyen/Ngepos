@@ -10,6 +10,7 @@ import {
   Package,
   Receipt,
   Settings,
+  ShoppingBag,
   ShoppingCart,
   Users,
   UtensilsCrossed,
@@ -23,6 +24,7 @@ import type { SidebarProps } from './types';
 
 const NAV_ICONS: Record<NavItemKey, LucideIcon> = {
   pos: ShoppingCart,
+  orders: ShoppingBag,
   products: Package,
   inventory: Boxes,
   tables: UtensilsCrossed,

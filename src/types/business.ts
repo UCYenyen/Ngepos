@@ -16,6 +16,7 @@ export interface Business {
   type: BusinessType;
   logo_url?: string | null;
   qris_image_url?: string | null;
+  subdomain?: string | null;
   address?: string;
   timezone: string;
   currency: string;

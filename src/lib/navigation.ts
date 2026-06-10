@@ -14,6 +14,7 @@ export type PlanFeatures = PlanConfig['features'];
 
 export type NavItemKey =
   | 'pos'
+  | 'orders'
   | 'products'
   | 'inventory'
   | 'tables'
@@ -48,6 +49,15 @@ export function getNavItems({
 
   if (canProcessTransactions(role)) {
     items.push({ key: 'pos', label: 'POS', href: to('pos'), locked: false });
+  }
+
+  if (canProcessTransactions(role)) {
+    items.push({
+      key: 'orders',
+      label: 'Pesanan Online',
+      href: to('orders'),
+      locked: !features.onlineStore,
+    });
   }
 
   if (canManageProducts(role)) {
