@@ -14,11 +14,10 @@ import { cn } from '@/lib/utils';
 import type { AccountTab, AccountTopbarProps } from './types';
 
 const TABS: { id: AccountTab; label: string; href: string }[] = [
-  { id: 'dashboard', label: 'Bisnis', href: '/dashboard' },
   { id: 'billing', label: 'Billing', href: '/billing' },
 ];
 
-export function AccountTopbar({ active = 'dashboard' }: AccountTopbarProps) {
+export function AccountTopbar({ active = 'billing' }: AccountTopbarProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
@@ -42,7 +41,7 @@ export function AccountTopbar({ active = 'dashboard' }: AccountTopbarProps) {
   return (
     <header className="flex h-15 shrink-0 items-center justify-between border-b border-hairline bg-surface-1 px-6 md:px-7">
       <div className="flex items-center gap-8">
-        <Link href="/dashboard" aria-label="Ngepos">
+        <Link href="/billing" aria-label="Ngepos">
           <Wordmark size={18} />
         </Link>
         <nav className="flex items-center gap-1.5">

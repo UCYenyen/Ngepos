@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Ngepos',
     description:
       'Aplikasi kasir multi-bisnis untuk F&B dan retail di Indonesia.',
-    start_url: '/dashboard',
+    start_url: '/',
     display: 'standalone',
     background_color: '#f5f1ec',
     theme_color: '#ff5600',

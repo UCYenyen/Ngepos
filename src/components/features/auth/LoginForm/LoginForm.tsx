@@ -29,7 +29,7 @@ export function LoginForm() {
         password: state.password,
       });
       if (error) throw error;
-      router.push('/dashboard');
+      router.push('/billing');
     } catch (err) {
       setState((prev) => ({
         ...prev,

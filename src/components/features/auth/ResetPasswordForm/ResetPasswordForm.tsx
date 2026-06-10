@@ -51,7 +51,7 @@ export function ResetPasswordForm() {
       });
       if (error) throw error;
       toast.success('Password berhasil diperbarui');
-      router.push('/dashboard');
+      router.push('/billing');
     } catch (err) {
       setState((prev) => ({
         ...prev,

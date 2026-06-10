@@ -94,7 +94,7 @@ export function OnboardingForm() {
         throw new Error('Gagal menyiapkan langganan. Coba lagi.');
       }
 
-      router.push('/dashboard');
+      router.push('/billing');
     } catch (err) {
       setState((prev) => ({
         ...prev,

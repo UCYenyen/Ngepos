@@ -157,7 +157,7 @@ export function Landing({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [annual, setAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState(0);
 
-  const startHref = isAuthenticated ? '/dashboard' : '/signup';
+  const startHref = isAuthenticated ? '/billing' : '/signup';
   const planHref = isAuthenticated ? '/billing' : '/signup';
 
   return (
@@ -175,10 +175,10 @@ export function Landing({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <Link
-                href="/dashboard"
+                href="/billing"
                 className="btn-accent h-9 gap-2 px-4 text-sm"
               >
-                Dashboard
+                Billing
                 <ArrowRight className="size-4" />
               </Link>
             ) : (

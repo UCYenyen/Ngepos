@@ -155,7 +155,7 @@ export async function requireBusinessAccess(businessId: string) {
 
   const access = await getBusinessWithMember(businessId);
   if (!access) {
-    redirect('/dashboard');
+    redirect('/billing');
   }
 
   return access;

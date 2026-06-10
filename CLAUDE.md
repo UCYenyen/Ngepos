@@ -4,9 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ngepos** is a multi-tenant SaaS POS (Point of Sale) system targeting F&B and retail businesses in Indonesia. A single user can own multiple businesses. Features are gated by subscription plan (Starter / Pro / Enterprise).
+This repo is the **Ngepos company website + platform-admin** app — one of three independent apps in `ngepos-master/` (see the workspace `../CLAUDE.md`). It owns the public **landing page**, **pricing**, **auth**, **account**, and **subscription billing**, plus a **platform-admin** dashboard (`/admin`) for Ngepos *operators* (not business owners). It has **no business-owner dashboard** — POS/products/inventory/staff/analytics/reports/settings live in the separate `ngepos-fnb` and `ngepos-retail` POS apps.
 
-Full system design spec: `docs/superpowers/specs/2026-06-08-pos-system-design.md`
+Each app has its **own Supabase project** (fault isolation). Subscription plans (Starter / Pro / Enterprise) and the multi-tenant data model still apply because billing and platform admin read across tenants.
+
+Full POS system design spec: `docs/superpowers/specs/2026-06-08-pos-system-design.md`
+
+### Platform admin
+
+- `platform_admins` table + `is_platform_admin()` helper (`supabase/migrations/026_platform_admins.sql`). Seed a row to grant operator access.
+- Guard: `requirePlatformAdmin()` in `src/lib/platform-admin.ts` — reads across tenants via `createAdminClient()` (service role), not RLS.
+- Route group `src/app/admin/` (layout runs the guard + `AdminShell`); pages are **scaffold placeholders** — navigation and empty states only, no data wiring/mutations yet.
+- After login the company-site authenticated home is **`/billing`** (there is no `/dashboard` route here).
 
 ## Tech Stack
 
@@ -53,20 +62,21 @@ Plan limits (max businesses, max products, max staff, feature flags) are defined
 ```plaintext
 src/app/
 ├── (auth)/              # Login, signup, onboarding — no sidebar
-├── (dashboard)/
-│   ├── [businessId]/
-│   │   ├── pos/         # POS transaction screen
-│   │   ├── products/    # Product & category management
-│   │   ├── inventory/   # Stock management (Pro/Enterprise)
-│   │   ├── tables/      # Table management (F&B, Pro/Enterprise)
-│   │   ├── staff/       # Staff roles & invitations
-│   │   ├── analytics/   # Sales dashboard (Pro/Enterprise)
-│   │   ├── reports/     # Export & automated reports
-│   │   └── settings/    # Business settings, QRIS upload
-│   └── businesses/      # Business switcher / create new
-├── billing/             # Subscription management
-└── api/                 # Route handlers (webhooks, reports)
+├── page.tsx             # Public marketing landing
+├── account/             # User account settings
+├── billing/             # Subscription management (authenticated home)
+├── admin/               # Platform-admin (operator) — guarded by requirePlatformAdmin()
+│   ├── layout.tsx       #   runs guard + AdminShell
+│   ├── dashboard/       #   scaffold placeholder pages (no data wiring yet)
+│   ├── businesses/
+│   ├── users/
+│   ├── subscriptions/
+│   ├── payments/
+│   └── settings/
+└── api/                 # auth, subscriptions, webhooks/xendit, cron, health only
 ```
+
+There is **no `(dashboard)/[businessId]/*`** here — business-owner POS routes live in the `ngepos-fnb` / `ngepos-retail` apps.
 
 ### Supabase Patterns
 

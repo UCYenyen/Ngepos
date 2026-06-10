@@ -1,4 +1,4 @@
-export type AccountTab = 'dashboard' | 'billing' | 'account';
+export type AccountTab = 'billing' | 'account';
 
 export interface AccountTopbarProps {
   active?: AccountTab;

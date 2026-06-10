@@ -67,7 +67,7 @@ describe('ResetPasswordForm', () => {
     await waitFor(() => {
       expect(updateUserMock).toHaveBeenCalledWith({ password: 'BaruBanget1' });
     });
-    expect(pushMock).toHaveBeenCalledWith('/dashboard');
+    expect(pushMock).toHaveBeenCalledWith('/billing');
   });
 
   it('blocks submission when the confirmation does not match', async () => {
