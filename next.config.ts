@@ -5,6 +5,7 @@ const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
   : undefined;
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   reactCompiler: true,
   images: {
     remotePatterns: supabaseHost
