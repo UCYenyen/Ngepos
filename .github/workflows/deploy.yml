@@ -50,11 +50,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # NEXT_PUBLIC_* are PUBLIC client values inlined into the browser bundle
-          # at build time (the anon key is exposed to every visitor anyway). Set
-          # them as repository VARIABLES (Settings > Secrets and variables >
-          # Actions > Variables) — NOT secrets. All real server secrets stay in
-          # the VPS .env and are injected at runtime by docker compose.
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

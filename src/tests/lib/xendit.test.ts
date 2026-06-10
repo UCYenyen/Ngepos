@@ -58,7 +58,7 @@ describe('xendit helper', () => {
       status: 'PENDING',
     });
 
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain('/v2/invoices');
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toMatch(/^Basic /);

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { isSubscriptionActive } from '@/lib/subscription';
+import {
+  isSubscriptionActive,
+  initialInvoiceTargetStatus,
+} from '@/lib/subscription';
 
 const future = new Date(Date.now() + 86_400_000).toISOString();
 const past = new Date(Date.now() - 86_400_000).toISOString();
@@ -21,5 +24,22 @@ describe('isSubscriptionActive', () => {
 
   it('treats a missing period_end as active (no expiry set)', () => {
     expect(isSubscriptionActive('active', null)).toBe(true);
+  });
+});
+
+describe('initialInvoiceTargetStatus', () => {
+  it('maps a paid checkout invoice to active', () => {
+    expect(initialInvoiceTargetStatus('PAID')).toBe('active');
+    expect(initialInvoiceTargetStatus('SETTLED')).toBe('active');
+  });
+
+  it('maps an expired checkout invoice to cancelled', () => {
+    expect(initialInvoiceTargetStatus('EXPIRED')).toBe('cancelled');
+  });
+
+  it('returns null for PENDING/unknown so no status is written', () => {
+    expect(initialInvoiceTargetStatus('PENDING')).toBeNull();
+    expect(initialInvoiceTargetStatus('')).toBeNull();
+    expect(initialInvoiceTargetStatus(undefined)).toBeNull();
   });
 });
